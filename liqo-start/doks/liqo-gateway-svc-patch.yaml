@@ -1,0 +1,9 @@
+annotation:
+  service.beta.kubernetes.io/do-loadbalancer-healthcheck-port: "80"
+    service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol: "http"
+spec:
+  ports:
+  - name: lb-replier
+    port: 80
+    protocol: TCP
+    targetPort: 80

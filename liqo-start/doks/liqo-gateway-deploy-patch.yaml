@@ -1,0 +1,10 @@
+spec:
+  template:
+    spec:
+      containers:
+      - name: lb-replier
+        image: nginx
+        ports:
+          - containerPort: 80
+            name: lb-replier
+            protocol: TCP
