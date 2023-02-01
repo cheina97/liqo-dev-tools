@@ -2,7 +2,7 @@
 
 PIDS=()
 
-doctl kubernetes cluster create liqo-1 --size s-1vcpu-2gb --count 1 --region ams3
+doctl kubernetes cluster create liqo-1 --size s-1vcpu-2gb --count 1 --region ams3 &
 PIDS+=($!)
 doctl kubernetes cluster create liqo-2 --size s-1vcpu-2gb --count 2 --region fra1 &
 PIDS+=($!)
@@ -33,13 +33,15 @@ export KUBECONFIG="$HOME/liqo_kubeconfig_do2.yaml"
 liqoctl install --pod-cidr "$liqo2podcidr" --service-cidr "$liqo2servicecidr" --cluster-name liqo-2 &
 PIDS+=($!)
 
+sleep 40s
+
 export KUBECONFIG="$HOME/liqo_kubeconfig_do1.yaml"
-kubectl wait --for=condition=ready pod liqo-gateway -n liqo
+kubectl wait --for=condition=ready pod  -l app.kubernetes.io/instance=liqo-gateway -n liqo
 kubectl patch -n liqo services liqo-gateway --patch-file liqo-gateway-svc-patch.yaml
 kubectl patch -n liqo deployments.apps liqo-gateway --patch-file liqo-gateway-deploy-patch.yaml
 
 export KUBECONFIG="$HOME/liqo_kubeconfig_do2.yaml"
-kubectl wait --for=condition=ready pod liqo-gateway -n liqo
+kubectl wait --for=condition=ready pod  -l app.kubernetes.io/instance=liqo-gateway -n liqo
 kubectl patch -n liqo services liqo-gateway --patch-file liqo-gateway-svc-patch.yaml
 kubectl patch -n liqo deployments.apps liqo-gateway --patch-file liqo-gateway-deploy-patch.yaml
 

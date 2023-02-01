@@ -106,7 +106,7 @@ echo -e "\n"
 
 i=1
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAME[@]}"; do
-#export KIND_EXPERIMENTAL_DOCKER_NETWORK=kind-liqo-${CLUSTER_NAME_ITEM}
+export KIND_EXPERIMENTAL_DOCKER_NETWORK=kind-liqo-${CLUSTER_NAME_ITEM}
     cat << EOF > "liqo-cluster-config-$i.yaml"
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
