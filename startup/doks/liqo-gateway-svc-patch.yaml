@@ -1,5 +1,5 @@
 metadata:  
-  annotation:
+  annotations:
     service.beta.kubernetes.io/do-loadbalancer-healthcheck-port: "80"
     service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol: "http"
 spec:
