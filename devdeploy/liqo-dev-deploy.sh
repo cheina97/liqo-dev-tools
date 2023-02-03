@@ -17,7 +17,7 @@ kind get clusters| while read line; do
     export KUBECONFIG="${HOME}/liqo_kubeconf_${line}"
     kubectl -n liqo patch deployment liqo-gateway --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"gateway\",\"image\": \"${LIQONET_IMAGE}\", \"args\": [ \"-v=1\", \"--run-as=liqo-gateway\", \"--gateway.leader-elect=true\", \"--gateway.mtu=1340\", \"--gateway.listening-port=5871\", \"--metrics-bind-addr=:5872\", \"--gateway.ping-interval=200ms\", \"--gateway.ping-loss-threshold=10\", \"--gateway.ping-latency-update-interval=1s\" ]}]}}}}"
     kubectl -n liqo patch deployment liqo-network-manager --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"network-manager\",\"image\": \"${LIQONET_IMAGE}\"}]}}}}"
-    kubectl -n liqo patch deployment liqo-controller-manager --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"controller-manager\",\"image\": \"${CONTROLLER_MANAGER_IMAGE}\"}]}}}}"
+    #kubectl -n liqo patch deployment liqo-controller-manager --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"controller-manager\",\"image\": \"${CONTROLLER_MANAGER_IMAGE}\"}]}}}}"
 done
 echo
 

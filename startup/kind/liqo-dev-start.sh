@@ -9,11 +9,20 @@ if [ "$(docker inspect -f '{{.State.Running}}' "${reg_name}" 2>/dev/null || true
     registry:2
 fi
 
-reg_name_proxy='kind-registry-proxy'
-if [ "$(docker inspect -f '{{.State.Running}}' "${reg_name_proxy}" 2>/dev/null || true)" != 'true' ]; then
+reg_name_proxy_ghcr='kind-registry-proxy-ghcr'
+if [ "$(docker inspect -f '{{.State.Running}}' "${reg_name_proxy_ghcr}" 2>/dev/null || true)" != 'true' ]; then
     docker run \
-    -d --restart=always --name "${reg_name_proxy}" \
-    -e REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
+    -d --restart=always --name "${reg_name_proxy_ghcr}" \
+   -e REGISTRY_PROXY_REMOTEURL="https://ghcr.io" \
+    --net=kind \
+    registry:2
+fi
+
+reg_name_proxy_dh='kind-registry-proxy-dh'
+if [ "$(docker inspect -f '{{.State.Running}}' "${reg_name_proxy_dh}" 2>/dev/null || true)" != 'true' ]; then
+    docker run \
+    -d --restart=always --name "${reg_name_proxy_dh}" \
+   -e REGISTRY_PROXY_REMOTEURL=https://registry-1.docker.io \
     --net=kind \
     registry:2
 fi
@@ -106,7 +115,7 @@ echo -e "\n"
 
 i=1
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAME[@]}"; do
-export KIND_EXPERIMENTAL_DOCKER_NETWORK=kind-liqo-${CLUSTER_NAME_ITEM}
+#export KIND_EXPERIMENTAL_DOCKER_NETWORK=kind-liqo-${CLUSTER_NAME_ITEM}
     cat << EOF > "liqo-cluster-config-$i.yaml"
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -119,7 +128,9 @@ nodes:
 containerdConfigPatches:
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
-    endpoint = ["http://${reg_name_proxy}:5000"]
+    endpoint = ["http://${reg_name_proxy_dh}:5000"]
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."ghcr.io"]
+    endpoint = ["http://${reg_name_proxy_ghcr}:5000"]
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:${reg_port}"]
     endpoint = ["http://${reg_name}:5000"]
 EOF
@@ -172,7 +183,8 @@ function  liqoctl_install_kind() {
     --set controllerManager.config.resourceSharingPercentage="${resourceSharingPercentage}" \
     --disable-telemetry \
     --local-chart-path $HOME/Documents/liqo/liqo/deployments/liqo \
-    --version 31ba4ee0ba68d0a5ba26929a6b9a8868ba1f0585
+    --disable-telemetry \
+    --version v0.7.0
 
     #liqoctl install kind --timeout 60m --version 9f345fdfa30653103386f885b9bcf474ca4ef648 --cluster-name "$CLUSTER_NAME_ITEM" \
     #--local-chart-path $HOME/Documents/liqo/liqo/deployments/liqo \
@@ -197,25 +209,25 @@ function  prometheus_install_kind() {
     kubectl create clusterrolebinding --clusterrole cluster-admin --serviceaccount monitoring:prometheus-k8s god
 }
 
-#PIDS=()
-#for CLUSTER_NAME_ITEM in "${CLUSTER_NAME[@]}"; do
-#    if [[ "${CLUSTER_NAME_ITEM}" == *"1"* ]]; then
-#        prometheus_install_kind &
-#        PIDS+=($!)
-#    fi
-#done
+PIDS=()
+for CLUSTER_NAME_ITEM in "${CLUSTER_NAME[@]}"; do
+    if [[ "${CLUSTER_NAME_ITEM}" == *"1"* ]]; then
+        prometheus_install_kind &
+        PIDS+=($!)
+    fi
+done
 
-#for PID in "${PIDS[@]}"; do
-#    wait "$PID"
-#done
+for PID in "${PIDS[@]}"; do
+    wait "$PID"
+done
 
 PIDS=()
 i=1
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAME[@]}"; do
     serviceMonitorEnabled="false"
-    #if [[ "${CLUSTER_NAME_ITEM}" == *"1"* ]]; then
-    #    serviceMonitorEnabled="true"
-    #fi
+    if [[ "${CLUSTER_NAME_ITEM}" == *"1"* ]]; then
+        serviceMonitorEnabled="true"
+    fi
     liqoctl_install_kind "${serviceMonitorEnabled}" "${i}0"  &
     PIDS+=($!)
     (( i++ )) || true
@@ -237,11 +249,9 @@ for PID in "${PIDS[@]}"; do
     wait "$PID"
 done
 
-#"$HOME"/Documents/liqo/scripts/dev-liqonet.sh
-
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAME[@]}"; do
     export KUBECONFIG="$HOME/liqo_kubeconf_${CLUSTER_NAME_ITEM}"
-    PEERING_CMDS["${CLUSTER_NAME_ITEM}"]="$(liqoctl generate peer-command --only-command)"
+    PEERING_CMDS[${CLUSTER_NAME_ITEM}]="$(liqoctl generate peer-command --only-command)"
 done
 
 if [ "$ENABLE_AUTOPEERING" == "true" ]; then
@@ -251,7 +261,7 @@ if [ "$ENABLE_AUTOPEERING" == "true" ]; then
             if [ "${PEERING_CMD_NAME}" != "${CLUSTER_NAME_ITEM}" ]; then
                 echo "Peering ${CLUSTER_NAME_ITEM} with ${PEERING_CMD_NAME}"
                 echo "${PEERING_CMDS["${PEERING_CMD_NAME}"]}"
-                ${PEERING_CMDS["${PEERING_CMD_NAME}"]}
+                ${PEERING_CMDS[${PEERING_CMD_NAME}]}
             fi
         done
     done
