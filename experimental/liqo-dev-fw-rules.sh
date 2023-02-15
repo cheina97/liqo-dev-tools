@@ -55,14 +55,14 @@ function allow_auth() {
 }
 
 function block_all() {
-    sudo iptables -I FORWARD -j DOCKER-KIND-LIQO-TRAFFIC
+    sudo iptables -D FORWARD -j DOCKER-KIND-LIQO-TRAFFIC
 }
 
 function allow_all() {
     local CLUSTER1="$1"
     local CLUSTER2="$2"
 
-    sudo iptables -D FORWARD -j DOCKER-KIND-LIQO-TRAFFIC
+    sudo iptables -I FORWARD -j DOCKER-KIND-LIQO-TRAFFIC
     # Delete also possible rules previuosly created
     allow_api $CLUSTER1 $CLUSTER2
     allow_gateway $CLUSTER1 $CLUSTER2
