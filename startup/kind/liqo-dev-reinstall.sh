@@ -11,7 +11,7 @@ function  liqoctl_install_kind() {
     --set gateway.metrics.serviceMonitor.enabled="${serviceMonitorEnabled}" \
     --set controllerManager.config.resourceSharingPercentage="${resourceSharingPercentage}" \
     --disable-telemetry \
-    --local-chart-path $HOME/Documents/liqo/liqo/deployments/liqo \
+    --local-chart-path "$HOME/Documents/liqo/liqo/deployments/liqo" \
     --disable-telemetry \
     --set gateway.config.wireguardImplementation="kernel" \
     --version v0.7.0

@@ -11,6 +11,39 @@
 # sudo iptables -I LIQO-cluster1-cluster2 -p tcp --dport 6443 -j DROP
 # sudo iptables -D LIQO-cluster1-cluster2 -p tcp --dport 6443 -j DROP
 
+# function get_subnet() {
+#     local DOCKER_NETWORK="$1"
+#     docker network inspect $DOCKER_NETWORK | jq '.[0].IPAM.Config[0].Subnet' | tr -d '"'
+# }
+
+# KUBERNETES API SERVER
+# Block connectivity
+# sudo iptables -I LIQO-cluster1-cluster2 --src "$(get_subnet kind-liqo-cluster1)" --dst "$(get_subnet kind-liqo-cluster2)" -p tcp --dport 6443 -j DROP
+# sudo iptables -I LIQO-cluster2-cluster1 --src "$(get_subnet kind-liqo-cluster2)" --dst "$(get_subnet kind-liqo-cluster1)" -p tcp --dport 6443 -j DROP
+# Restore connectivity
+# sudo iptables -D LIQO-cluster1-cluster2 --src "$(get_subnet kind-liqo-cluster1)" --dst "$(get_subnet kind-liqo-cluster2)" -p tcp --dport 6443 -j DROP
+# sudo iptables -D LIQO-cluster2-cluster1 --src "$(get_subnet kind-liqo-cluster2)" --dst "$(get_subnet kind-liqo-cluster1)" -p tcp --dport 6443 -j DROP
+
+
+# LIQO GATEWAY SERVICE
+# Block connectivity
+# sudo iptables -I LIQO-cluster1-cluster2 --src "$(get_subnet kind-liqo-cluster1)" --dst "$(get_subnet kind-liqo-cluster2)" -p udp --dport 5871 -j DROP
+# sudo iptables -I LIQO-cluster2-cluster1 --src "$(get_subnet kind-liqo-cluster2)" --dst "$(get_subnet kind-liqo-cluster1)" -p udp --dport 5871 -j DROP
+# Restore connectivity
+# sudo iptables -D LIQO-cluster1-cluster2 --src "$(get_subnet kind-liqo-cluster1)" --dst "$(get_subnet kind-liqo-cluster2)" -p udp --dport 5871 -j DROP
+# sudo iptables -D LIQO-cluster2-cluster1 --src "$(get_subnet kind-liqo-cluster2)" --dst "$(get_subnet kind-liqo-cluster1)" -p udp --dport 5871 -j DROP
+
+
+# LIQO AUTH SERVICE
+# Block connectivity
+# sudo iptables -I LIQO-cluster1-cluster2 --src "$(get_subnet kind-liqo-cluster1)" --dst "$(get_subnet kind-liqo-cluster2)" -p tcp --dport 443 -j DROP
+# sudo iptables -I LIQO-cluster2-cluster1 --src "$(get_subnet kind-liqo-cluster2)" --dst "$(get_subnet kind-liqo-cluster1)" -p tcp --dport 443 -j DROP
+# Restore connectivity
+# sudo iptables -D LIQO-cluster1-cluster2 --src "$(get_subnet kind-liqo-cluster1)" --dst "$(get_subnet kind-liqo-cluster2)" -p tcp --dport 443 -j DROP
+# sudo iptables -D LIQO-cluster2-cluster1 --src "$(get_subnet kind-liqo-cluster2)" --dst "$(get_subnet kind-liqo-cluster1)" -p tcp --dport 443 -j DROP
+
+
+
 declare -A cidrs
 keys=()
 

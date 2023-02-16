@@ -142,11 +142,11 @@ function  liqoctl_install_kind() {
     --set gateway.metrics.enabled=true \
     --set gateway.metrics.serviceMonitor.enabled="${serviceMonitorEnabled}" \
     --set controllerManager.config.resourceSharingPercentage="${resourceSharingPercentage}" \
-    --set gateway.service.type=LoadBalancer \
-    --set auth.service.type=LoadBalancer \
     --disable-telemetry \
     --local-chart-path "$HOME/Documents/liqo/liqo/deployments/liqo" \
     --version v0.7.0
+    #--set gateway.service.type=LoadBalancer \
+    #--set auth.service.type=LoadBalancer \
 
     #liqoctl install kind --timeout 60m --version 9f345fdfa30653103386f885b9bcf474ca4ef648 --cluster-name "$CLUSTER_NAME_ITEM" \
     #--local-chart-path $HOME/Documents/liqo/liqo/deployments/liqo \
@@ -174,7 +174,7 @@ function  prometheus_install_kind() {
 PIDS=()
 i=1
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAME[@]}"; do
-    install_loadbalancer "kind" ${i} &
+    #install_loadbalancer "kind" ${i} &
     PIDS+=($!)
     (( i++ ))
 done
