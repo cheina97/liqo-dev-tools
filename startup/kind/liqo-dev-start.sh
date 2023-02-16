@@ -27,45 +27,12 @@ if [ "$(docker inspect -f '{{.State.Running}}' "${reg_name_proxy_dh}" 2>/dev/nul
     registry:2
 fi
 
-
-function setup_arch_and_os(){
-    ARCH=$(uname -m)
-    case $ARCH in
-        armv5*) ARCH="armv5";;
-        armv6*) ARCH="armv6";;
-        armv7*) ARCH="arm";;
-        arm64*) ARCH="arm64";;
-        aarch64) ARCH="arm64";;
-        x86) ARCH="386";;
-        x86_64) ARCH="amd64";;
-        i686) ARCH="386";;
-        i386) ARCH="386";;
-        *) echo "Error architecture '${ARCH}' unknown"; exit 1 ;;
-    esac
-    
-    OS=$(uname |tr '[:upper:]' '[:lower:]')
-    case "$OS" in
-        # Minimalist GNU for Windows
-        "mingw"*) OS='windows'; return ;;
-    esac
-    
-    # list is available for kind at https://github.com/kubernetes-sigs/kind/releases
-    # kubectl supported architecture list is a superset of the Kind one. No need to further compatibility check.
-    local supported="darwin-amd64\ndarwin-arm64\nlinux-amd64\nlinux-arm64\nlinux-ppc64le\nwindows-amd64"
-    if ! echo "${supported}" | grep -q "${OS}-${ARCH}"; then
-        echo "Error: No version of kind for '${OS}-${ARCH}'"
-        return 1
-    fi
-    
-}
-
 if [ $# -ne 2 ] && { [ "$2" != "true" ] &&  [ "$2" != "false" ]; }; then
     echo "Error: wrong parameters"
     echo "Usage: mio_liqostart <CLUSTERS_NUMBER> <ENABLE_AUTOPEERING true|false>"
     exit
 fi
 
-setup_arch_and_os
 END=$1
 ENABLE_AUTOPEERING=$2
 
@@ -76,43 +43,11 @@ for i in $(seq 1 "$END"); do
     CLUSTER_NAME+=("cluster${i}")
 done
 
-TMPDIR=$(mktemp -d -t liqo-install.XXXXXXXXXX)
-BINDIR="${TMPDIR}/bin"
-mkdir -p "${BINDIR}"
-
-if ! command -v docker &> /dev/null;
-then
-    echo "MISSING REQUIREMENT: docker engine could not be found on your system. Please install docker engine to continue: https://docs.docker.com/get-docker/"
-    exit 1
-fi
-
-if ! docker info &> /dev/null;
-then
-    echo "Error: Docker is not running. Please start it to continue."
-    exit 1
-fi
-
-if ! command -v kubectl &> /dev/null
-then
-    echo "WARNING: kubectl could not be found. Downloading and installing it locally..."
-    if ! curl --fail -Lo "${BINDIR}"/kubectl "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/${OS}/${ARCH}/kubectl"; then
-        echo "Error: Unable to download kubectl for '${OS}-${ARCH}'"
-        exit 1
-    fi
-    chmod +x "${BINDIR}"/kubectl
-    export PATH=${PATH}:${BINDIR}
-fi
-
-#curl -Lo "${BINDIR}"/kind https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-${OS}-${ARCH}
-#chmod +x "${BINDIR}"/kind
-
-#KIND="${BINDIR}/kind"
 KIND="kind"
 
 echo -e "\nDeleting old clusters"
 ${KIND} delete clusters --all
 echo -e "\n"
-
 
 i=1
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAME[@]}"; do
@@ -137,7 +72,7 @@ containerdConfigPatches:
 EOF
     ${KIND} create cluster --name "$CLUSTER_NAME_ITEM" --config "liqo-cluster-config-${i}.yaml" --wait 2m &
     PIDS+=($!)
-    let i++
+    ((i++))
 done
 
 for PID in "${PIDS[@]}"; do
@@ -172,6 +107,31 @@ done
 
 declare -A PEERING_CMDS
 
+function install_loadbalancer(){
+    export KUBECONFIG="$HOME/liqo_kubeconf_${CLUSTER_NAME_ITEM}"
+    docker_net="$1"
+    index="$2"
+    subIp=$(docker network inspect "${docker_net}"|jq ".[0].IPAM.Config"|jq ".[0].Subnet"|cut -d . -f 2)
+    kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
+    kubectl wait --namespace metallb-system --for=condition=ready pod --selector=app=metallb --timeout=90s
+    cat <<EOF | kubectl apply -f -
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: example
+  namespace: metallb-system
+spec:
+  addresses:
+  - 172.${subIp}.${index}.200-172.${subIp}.${index}.250
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: empty
+  namespace: metallb-system
+EOF
+}
+
 function  liqoctl_install_kind() {
     serviceMonitorEnabled="$1"
     resourceSharingPercentage="$2"
@@ -182,9 +142,10 @@ function  liqoctl_install_kind() {
     --set gateway.metrics.enabled=true \
     --set gateway.metrics.serviceMonitor.enabled="${serviceMonitorEnabled}" \
     --set controllerManager.config.resourceSharingPercentage="${resourceSharingPercentage}" \
+    --set gateway.service.type=LoadBalancer \
+    --set auth.service.type=LoadBalancer \
     --disable-telemetry \
-    --local-chart-path $HOME/Documents/liqo/liqo/deployments/liqo \
-    --disable-telemetry \
+    --local-chart-path "$HOME/Documents/liqo/liqo/deployments/liqo" \
     --version v0.7.0
 
     #liqoctl install kind --timeout 60m --version 9f345fdfa30653103386f885b9bcf474ca4ef648 --cluster-name "$CLUSTER_NAME_ITEM" \
@@ -209,6 +170,18 @@ function  prometheus_install_kind() {
     kubectl apply -f "$HOME/Documents/Kubernetes/kube-prometheus/manifests/"
     kubectl create clusterrolebinding --clusterrole cluster-admin --serviceaccount monitoring:prometheus-k8s god
 }
+
+PIDS=()
+i=1
+for CLUSTER_NAME_ITEM in "${CLUSTER_NAME[@]}"; do
+    install_loadbalancer "kind" ${i} &
+    PIDS+=($!)
+    (( i++ ))
+done
+
+for PID in "${PIDS[@]}"; do
+    wait "$PID"
+done
 
 PIDS=()
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAME[@]}"; do
@@ -272,6 +245,6 @@ i=1
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAME[@]}"; do
     rm liqo-cluster-config-${i}.yaml
     #    rm "$HOME/liqo_kubeconf_${CLUSTER_NAME_ITEM}"
-    let i++
+    ((i++))
 done
 
