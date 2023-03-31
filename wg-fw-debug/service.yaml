@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: wg-fw-debug
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+spec:
+  type: LoadBalancer
+  selector:
+    app: wg-fw-debug
+  ports:
+  - protocol: UDP
+    port: 5871
+    targetPort: 33333
+    name: wg-fw-debug
+  

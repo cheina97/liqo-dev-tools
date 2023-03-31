@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wg-fw-debug
+spec:
+  selector:
+    matchLabels:
+      app: wg-fw-debug
+  template:
+    metadata:
+      labels:
+        app: wg-fw-debug
+    spec:
+      containers:
+      - name: wg-fw-debug
+        image: samos123/udp-echo-server
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 33333
+          protocol: UDP
+          name: wg-fw-debug
