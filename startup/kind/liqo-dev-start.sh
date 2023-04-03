@@ -56,8 +56,8 @@ for CLUSTER_NAME_ITEM in "${CLUSTER_NAME[@]}"; do
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 networking:
-  serviceSubnet: "10.1${i}1.0.0/16"
-  podSubnet: "10.1${i}2.0.0/16"
+  serviceSubnet: "10.111.0.0/16"
+  podSubnet: "10.112.0.0/16"
 nodes:
   - role: control-plane
     image: kindest/node:v1.25.0
@@ -188,7 +188,7 @@ done
 PIDS=()
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAME[@]}"; do
     if [[ "${CLUSTER_NAME_ITEM}" == *"1"* ]]; then
-        prometheus_install_kind &
+        #prometheus_install_kind &
         PIDS+=($!)
     fi
 done
@@ -201,9 +201,9 @@ PIDS=()
 i=1
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAME[@]}"; do
     serviceMonitorEnabled="false"
-    if [[ "${CLUSTER_NAME_ITEM}" == *"1"* ]]; then
-        serviceMonitorEnabled="true"
-    fi
+    #if [[ "${CLUSTER_NAME_ITEM}" == *"1"* ]]; then
+    #    serviceMonitorEnabled="true"
+    #fi
     liqoctl_install_kind "${serviceMonitorEnabled}" "${i}0"  &
     PIDS+=($!)
     (( i++ )) || true
