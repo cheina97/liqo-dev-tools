@@ -130,7 +130,9 @@ function install_cni(){
     if [ "${cni}" == cilium ]; then
         cilium install --wait
     elif [ "${cni}" == calico ]; then
-        kind-dev-calico
+        kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.1/manifests/tigera-operator.yaml
+        curl https://raw.githubusercontent.com/projectcalico/calico/v3.25.1/manifests/custom-resources.yaml -O
+        kubectl create -f custom-resources.yaml
     fi
 }
 
