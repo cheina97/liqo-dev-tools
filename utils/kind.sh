@@ -32,25 +32,25 @@ function kind-registry () {
 function kind-create-cluster () {
     #export KIND_EXPERIMENTAL_DOCKER_NETWORK=kind-liqo-${cluster_name}
     cluster_name=$1
-    CNI=$2
+    index=$2
+    CNI=$3
 
-    DISABLEDEFAULTCNI=false
-    KUBEPROXYMODE="iptables"
+    DISABLEDEFAULTCNI="false"
     if [ "$CNI" != "kind" ]; then
-        DISABLEDEFAULTCNI=true
-        KUBEPROXYMODE="none"
+        DISABLEDEFAULTCNI="true"
     fi
 
     cat << EOF > "liqo-${cluster_name}-config.yaml"
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 networking:
-  serviceSubnet: "10.111.0.0/16"
-  podSubnet: "10.112.0.0/16"
+  serviceSubnet: "10.1${index}1.0.0/16"
+  podSubnet: "10.1${index}2.0.0/16"
   disableDefaultCNI: ${DISABLEDEFAULTCNI}
-  kubeProxyMode: ${KUBEPROXYMODE}  
 nodes:
   - role: control-plane
+    image: kindest/node:v1.25.0
+  - role: worker
     image: kindest/node:v1.25.0
 containerdConfigPatches:
 - |-
@@ -61,7 +61,7 @@ containerdConfigPatches:
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:${reg_port}"]
     endpoint = ["http://${reg_name}:5000"]
 EOF
-    kind create cluster --name "${cluster_name}" --config "liqo-${cluster_name}-config.yaml" --wait 2m
+    kind create cluster --name "${cluster_name}" --config "liqo-${cluster_name}-config.yaml"
     rm "liqo-${cluster_name}-config.yaml"
     kind get kubeconfig --name "${cluster_name}" > "$HOME/liqo_kubeconf_${cluster_name}"
 }
@@ -128,7 +128,7 @@ function install_cni(){
 
     cni="$2"
     if [ "${cni}" == cilium ]; then
-        kind-dev-cilium
+        cilium install --wait
     elif [ "${cni}" == calico ]; then
         kind-dev-calico
     fi

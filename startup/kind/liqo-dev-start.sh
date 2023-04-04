@@ -16,7 +16,6 @@ END=$1
 ENABLE_AUTOPEERING=$2
 CNI=$3
 CLUSTER_NAMES=()
-PIDS=()
 declare -A PEERING_CMDS
 for i in $(seq 1 "$END"); do
     CLUSTER_NAMES+=("cluster${i}")
@@ -29,7 +28,7 @@ kind-registry
 kind-deleteall-cluster
 
 # Create clusters
-doforall_asyncandwait_witharg kind-create-cluster "${CNI}" "${CLUSTER_NAMES[@]}"
+doforall_asyncandwait_withargandindex kind-create-cluster "${CNI}" "${CLUSTER_NAMES[@]}"
 
 # Connect the registry to the cluster network if not already connected
 doforall_asyncandwait kind-connect-registry "${CLUSTER_NAMES[@]}"
@@ -38,10 +37,10 @@ doforall_asyncandwait kind-connect-registry "${CLUSTER_NAMES[@]}"
 doforall_asyncandwait_witharg install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 
 # Install loadbalancer
-doforall_asyncandwait_withindex install_loadbalancer "${CLUSTER_NAMES[@]}"
+#doforall_asyncandwait_withindex install_loadbalancer "${CLUSTER_NAMES[@]}"
 
 # Install kube-prometheus
-doforall_asyncandwait prometheus_install_kind "${CLUSTER_NAMES[0]}"
+#doforall_asyncandwait prometheus_install_kind "${CLUSTER_NAMES[0]}"
 
 # Install metrics-server
 doforall_asyncandwait metrics-server_install_kind "${CLUSTER_NAMES[@]}"
