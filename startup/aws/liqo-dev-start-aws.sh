@@ -17,12 +17,12 @@ PIDS=()
 
 export EKS_CLUSTER_NAME=eks1
 export EKS_CLUSTER_REGION=eu-west-1
-liqoctl install eks --eks-cluster-region=${EKS_CLUSTER_REGION} --eks-cluster-name=${EKS_CLUSTER_NAME} --kubeconfig "$HOME/liqo_kubeconf_eks1" --user-name "liqo-cluster-francesco.cheinasso" &
+liqoctl install eks --eks-cluster-region=${EKS_CLUSTER_REGION} --eks-cluster-name=${EKS_CLUSTER_NAME} --kubeconfig "$HOME/liqo_kubeconf_eks1" &
 PIDS+=($!)
 
 export EKS_CLUSTER_NAME=eks2
 export EKS_CLUSTER_REGION=eu-west-2 
-liqoctl install eks --eks-cluster-region=${EKS_CLUSTER_REGION} --eks-cluster-name=${EKS_CLUSTER_NAME} --kubeconfig "$HOME/liqo_kubeconf_eks2" --user-name "liqo-cluster-francesco.cheinasso" &
+liqoctl install eks --eks-cluster-region=${EKS_CLUSTER_REGION} --eks-cluster-name=${EKS_CLUSTER_NAME} --kubeconfig "$HOME/liqo_kubeconf_eks2" &
 PIDS+=($!)
 
 for PID in "${PIDS[@]}"; do

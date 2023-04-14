@@ -30,6 +30,11 @@ kind-deleteall-cluster
 # Create clusters
 doforall_asyncandwait_withargandindex kind-create-cluster "${CNI}" "${CLUSTER_NAMES[@]}"
 
+sleep 3s
+
+# Create kubeconfig
+doforall kind-get-kubeconfig "${CLUSTER_NAMES[@]}"
+
 # Connect the registry to the cluster network if not already connected
 doforall_asyncandwait kind-connect-registry "${CLUSTER_NAMES[@]}"
 
@@ -39,11 +44,11 @@ doforall_asyncandwait_witharg install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 # Install loadbalancer
 #doforall_asyncandwait_withindex install_loadbalancer "${CLUSTER_NAMES[@]}"
 
-# Install kube-prometheus
-#doforall_asyncandwait prometheus_install_kind "${CLUSTER_NAMES[0]}"
-
 # Install metrics-server
 doforall_asyncandwait metrics-server_install_kind "${CLUSTER_NAMES[@]}"
+
+# Install kube-prometheus
+doforall_asyncandwait prometheus_install_kind "${CLUSTER_NAMES[0]}"
 
 # Install liqo
 doforall_asyncandwait_withindex liqoctl_install_kind "${CLUSTER_NAMES[@]}"
