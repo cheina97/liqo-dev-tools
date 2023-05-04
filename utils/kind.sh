@@ -44,8 +44,8 @@ function kind-create-cluster () {
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 networking:
-  serviceSubnet: "10.111.0.0/16"
-  podSubnet: "10.112.0.0/16"
+  serviceSubnet: "10.1${index}1.0.0/16"
+  podSubnet: "10.1${index}2.0.0/16"
   disableDefaultCNI: ${DISABLEDEFAULTCNI}
 nodes:
   - role: control-plane
@@ -145,9 +145,9 @@ function  liqoctl_install_kind() {
     index="$2"
 
     serviceMonitorEnabled="false"
-    if [ "${index}" == "1" ]; then
-        serviceMonitorEnabled="true"
-    fi
+    #if [ "${index}" == "1" ]; then
+    #    serviceMonitorEnabled="true"
+    #fi
 
     liqoctl install kind --timeout 60m --cluster-name "${cluster_name}" \
     --cluster-labels="cl.liqo.io/name=${cluster_name}" \
@@ -156,9 +156,10 @@ function  liqoctl_install_kind() {
     --set controllerManager.config.resourceSharingPercentage="80" \
     --disable-telemetry \
     --local-chart-path "$HOME/Documents/liqo/liqo/deployments/liqo" \
-    --version "dc298e497bee57b65900b7ab1ec0c7483985b837" \
+    --version "v0.8.1" \
     --set virtualKubelet.metrics.enabled=true \
-    --set virtualKubelet.metrics.podMonitor.enabled="${serviceMonitorEnabled}"    
+    --set virtualKubelet.metrics.port=1234 \
+    --set virtualKubelet.metrics.podMonitor.enabled=false    
 
     #--set networking.internal=false \
     #--set networking.reflectIPs=false \

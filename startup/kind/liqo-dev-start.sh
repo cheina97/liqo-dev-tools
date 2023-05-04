@@ -45,13 +45,17 @@ doforall_asyncandwait_witharg install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 #doforall_asyncandwait_withindex install_loadbalancer "${CLUSTER_NAMES[@]}"
 
 # Install metrics-server
-doforall_asyncandwait metrics-server_install_kind "${CLUSTER_NAMES[@]}"
+#doforall_asyncandwait metrics-server_install_kind "${CLUSTER_NAMES[@]}"
 
 # Install kube-prometheus
-doforall_asyncandwait prometheus_install_kind "${CLUSTER_NAMES[0]}"
+#doforall_asyncandwait prometheus_install_kind "${CLUSTER_NAMES[0]}"
+
 
 # Install liqo
 doforall_asyncandwait_withindex liqoctl_install_kind "${CLUSTER_NAMES[@]}"
+
+# Deploy Dev Version
+#liqo-dev-deploy
 
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAMES[@]}"; do
     export KUBECONFIG="$HOME/liqo_kubeconf_${CLUSTER_NAME_ITEM}"

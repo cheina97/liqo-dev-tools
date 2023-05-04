@@ -1,0 +1,35 @@
+apiVersion: virtualkubelet.liqo.io/v1alpha1
+kind: VirtualNode
+metadata:
+  name: vn1s
+spec:
+  clusterIdentity:
+    clusterID: id1
+    clusterName: cluster1
+  offloadingPatch: {}
+  template:
+    metadata:
+      labels:
+        virtual-node-prova: prova-vn3
+    spec:
+      selector:
+        matchLabels:
+          virtual-node: vn3
+      template:
+        spec:
+          containers:
+            - name: nginx
+        
+  createNode: true
+  kubeconfigSecretRef:
+    name: test-ref
+  images: []
+  resourceQuota:
+    hard:
+      limits.cpu: "4"
+      limits.memory: 4Gi
+      requests.cpu: "2"
+      requests.memory: 2Gi
+  labels: {}
+  storageClasses: []
+  

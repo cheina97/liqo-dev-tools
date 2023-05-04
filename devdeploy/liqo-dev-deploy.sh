@@ -8,12 +8,12 @@ VK_IMAGE="localhost:5001/virtual-kubelet:${TAG}"
 
 #docker build -t "${LIQONET_IMAGE}" --file="${HOME}/Documents/liqo/liqo/build/liqonet/Dockerfile" "${HOME}/Documents/liqo/liqo" || exit 1
 docker build -t "${CONTROLLER_MANAGER_IMAGE}" --file="${HOME}/Documents/liqo/liqo/build/common/Dockerfile" --build-arg=COMPONENT="liqo-controller-manager" "${HOME}/Documents/liqo/liqo" || exit 1
-docker build -t "${VK_IMAGE}" --file="${HOME}/Documents/liqo/liqo/build/common/Dockerfile" --build-arg=COMPONENT="virtual-kubelet" "${HOME}/Documents/liqo/liqo" || exit 1
+#docker build -t "${VK_IMAGE}" --file="${HOME}/Documents/liqo/liqo/build/common/Dockerfile" --build-arg=COMPONENT="virtual-kubelet" "${HOME}/Documents/liqo/liqo" || exit 1
 echo
 
 #docker push "${LIQONET_IMAGE}"
 docker push "${CONTROLLER_MANAGER_IMAGE}"
-docker push "${VK_IMAGE}"
+#docker push "${VK_IMAGE}"
 echo
 
 kind get clusters| while read line; do
@@ -26,7 +26,7 @@ echo
 
 kind get clusters| while read cluster_name; do
     export KUBECONFIG="${HOME}/liqo_kubeconf_${cluster_name}"
-    tput setaf 3; tput bold; echo "${cluster_name} downloading container ${LIQONET_IMAGE} ..."
+    tput setaf 3; tput bold; echo "${cluster_name} downloading containers ..."
     tput sgr0
     kubectl wait deployment -n liqo liqo-gateway --for condition=Available=True --timeout=300s
     kubectl wait deployment -n liqo liqo-network-manager --for condition=Available=True --timeout=300s
