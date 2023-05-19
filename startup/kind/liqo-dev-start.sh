@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 
-# shellcheck source=/dev/null
 FILEPATH=$(realpath "$0")
 DIRPATH=$(dirname "$FILEPATH")
+export DIRPATH
+# shellcheck source=./utils/kind.sh
 source "$DIRPATH/../../utils/kind.sh"
+# shellcheck source=./utils/generic.sh
 source "$DIRPATH/../../utils/generic.sh"
 
-if [ $# -ne 3 ] || { [ "$2" != "true" ] && [ "$2" != "false" ]; } || { [ "$3" != "cilium" ] && [ "$3" != "calico" ] && [ "$3" != "kind" ] ; }; then
+if [ $# -ne 3 ] || { [ "$2" != "true" ] && [ "$2" != "false" ]; } || { [ "$3" != "cilium" ] && [ "$3" != "calico" ] && [ "$3" != "kind" ] && [ "$3" != "flannel" ] ; }; then
     echo "Error: wrong parameters"
     echo "Usage: liqo-dev-start <CLUSTERS_NUMBER> <ENABLE_AUTOPEERING true|false> <CNI calico|cilium|kind>"
     exit 1
@@ -15,6 +17,8 @@ fi
 END=$1
 ENABLE_AUTOPEERING=$2
 CNI=$3
+export SERVICE_CIDR_TMPL='10.1X1.0.0/16'
+export POD_CIDR_TMPL='10.1X2.0.0/16'
 CLUSTER_NAMES=()
 declare -A PEERING_CMDS
 for i in $(seq 1 "$END"); do
@@ -39,7 +43,7 @@ doforall kind-get-kubeconfig "${CLUSTER_NAMES[@]}"
 doforall_asyncandwait kind-connect-registry "${CLUSTER_NAMES[@]}"
 
 # Install CNI
-doforall_asyncandwait_witharg install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
+doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 
 # Install loadbalancer
 #doforall_asyncandwait_withindex install_loadbalancer "${CLUSTER_NAMES[@]}"
@@ -50,12 +54,14 @@ doforall_asyncandwait_witharg install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 # Install kube-prometheus
 #doforall_asyncandwait prometheus_install_kind "${CLUSTER_NAMES[0]}"
 
+# Install ArgoCD
+#doforall_asyncandwait install_argocd "${CLUSTER_NAMES[@]}"
 
 # Install liqo
 doforall_asyncandwait_withindex liqoctl_install_kind "${CLUSTER_NAMES[@]}"
 
 # Deploy Dev Version
-#liqo-dev-deploy
+liqo-dev-deploy
 
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAMES[@]}"; do
     export KUBECONFIG="$HOME/liqo_kubeconf_${CLUSTER_NAME_ITEM}"

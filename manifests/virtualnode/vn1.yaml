@@ -1,25 +1,22 @@
 apiVersion: virtualkubelet.liqo.io/v1alpha1
 kind: VirtualNode
 metadata:
-  name: vn1s
+  name: vn1
 spec:
   clusterIdentity:
-    clusterID: id1
-    clusterName: cluster1
+    clusterID: a50a605a-f2b1-454e-a0b7-1a7328abc0f4
+    clusterName: cluster2
   offloadingPatch: {}
   template:
-    metadata:
-      labels:
-        virtual-node-prova: prova-vn3
     spec:
       selector:
         matchLabels:
-          virtual-node: vn3
+          virtual-node: vn1
       template:
         spec:
           containers:
-            - name: nginx
-        
+            - name: virtual-kubelet
+              image: localhost:5001/virtual-kubelet
   createNode: true
   kubeconfigSecretRef:
     name: test-ref
