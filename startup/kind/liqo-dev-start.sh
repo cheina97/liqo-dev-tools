@@ -61,7 +61,7 @@ doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 doforall_asyncandwait_withindex liqoctl_install_kind "${CLUSTER_NAMES[@]}"
 
 # Deploy Dev Version
-liqo-dev-deploy
+#liqo-dev-deploy
 
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAMES[@]}"; do
     export KUBECONFIG="$HOME/liqo_kubeconf_${CLUSTER_NAME_ITEM}"

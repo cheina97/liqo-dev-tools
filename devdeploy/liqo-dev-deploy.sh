@@ -2,48 +2,67 @@
 
 FILEPATH=$(realpath "$0")
 DIRPATH=$(dirname "$FILEPATH")
-
 TAG="$(date +%s)"
-LIQONET_IMAGE="localhost:5001/liqonet:${TAG}"
-export LIQONET_IMAGE
-CONTROLLER_MANAGER_IMAGE="localhost:5001/liqo-controller-manager-ci:${TAG}"
-export CONTROLLER_MANAGER_IMAGE
-VK_IMAGE="localhost:5001/virtual-kubelet-ci:1685032696"
-export VK_IMAGE
+LIQO_ROOT="${HOME}/Documents/liqo/liqo"
+DEPLOY=true
 
+COMPONENTS=(
+    "controller-manager"
+    "liqonet"
+    "virtual-kubelet"
+)
 
-#docker build -t "${LIQONET_IMAGE}" --file="${HOME}/Documents/liqo/liqo/build/liqonet/Dockerfile" "${HOME}/Documents/liqo/liqo" || exit 1
-docker build -t "${CONTROLLER_MANAGER_IMAGE}" --file="${HOME}/Documents/liqo/liqo/build/common/Dockerfile" --build-arg=COMPONENT="liqo-controller-manager" "${HOME}/Documents/liqo/liqo" || exit 1
-#docker build -t "${VK_IMAGE}" --file="${HOME}/Documents/liqo/liqo/build/common/Dockerfile" --build-arg=COMPONENT="virtual-kubelet" "${HOME}/Documents/liqo/liqo" || exit 1
-
-#docker push "${LIQONET_IMAGE}"
-docker tag "${CONTROLLER_MANAGER_IMAGE}" "localhost:5001/liqo-controller-manager:latest"
-docker push "localhost:5001/liqo-controller-manager-ci:latest" 
-docker push "${CONTROLLER_MANAGER_IMAGE}"
-#docker tag "${VK_IMAGE}" "localhost:5001/virtual-kubelet-ci:latest"
-#docker push "localhost:5001/virtual-kubelet-ci:latest"
-#docker push "${VK_IMAGE}"
-echo
-
-kind get clusters| while read line; do
-    export KUBECONFIG="${HOME}/liqo_kubeconf_${line}"
-    #kubectl -n liqo patch deployment liqo-gateway --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"gateway\",\"image\": \"${LIQONET_IMAGE}\", liqo\"args\": [ \"-v=1\", \"--run-as=liqo-gateway\", \"--gateway.leader-elect=true\", \"--gateway.mtu=1340\", \"--gateway.listening-port=5871\", \"--metrics-bind-addr=:5872\", \"--gateway.ping-interval=200ms\", \"--gateway.ping-loss-threshold=10\", \"--gateway.ping-latency-update-interval=1s\" ]}]}}}}"
-    #kubectl -n liqo patch deployment liqo-network-manager --patch "{\"spec\": {\"template\": {\"spec\": {\"containers\": [{\"name\": \"network-manager\",\"image\": \"${LIQONET_IMAGE}\"}]}}}}"
-    envsubst < "${DIRPATH}/controller-manager-patch.yaml" |  kubectl -n liqo patch deployment liqo-controller-manager --patch-file=/dev/stdin
-    #envsubst < "${DIRPATH}/controller-manager-patch.json" |  kubectl -n liqo patch deployment liqo-controller-manager --patch-file=/dev/stdin --type json
-done
-echo
-
-kind get clusters| while read cluster_name; do
-    export KUBECONFIG="${HOME}/liqo_kubeconf_${cluster_name}"
-    tput setaf 3; tput bold; echo "${cluster_name} downloading containers ..."
+for COMPONENT in "${COMPONENTS[@]}"; do
+    tput setaf 3; tput bold; echo "Component: ${COMPONENT}"
     tput sgr0
-    kubectl wait deployment -n liqo liqo-gateway --for condition=Available=True --timeout=300s
-    kubectl wait deployment -n liqo liqo-network-manager --for condition=Available=True --timeout=300s
-    kubectl wait deployment -n liqo liqo-controller-manager --for condition=Available=True --timeout=300s
+
+    IMAGE_BASE="localhost:5001/${COMPONENT}"
+    IMAGE="${IMAGE_BASE}:${TAG}"
+    export IMAGE
+
+    # Build the image
+    tput setaf 3; tput bold; echo "Building ${IMAGE}"
+    tput sgr0
+
+    if [[ "${COMPONENT}" == "liqonet" ]]; then
+        docker build -t "${LIQONET_IMAGE}" --file="${LIQO_ROOT}/build/liqonet/Dockerfile" "${LIQO_ROOT}" || exit 1
+        #docker buildx build --push --platform linux/amd64,linux/arm64 --tag "ghcr.io/cheina97/${COMPONENT}:${TAG}" --file="${LIQO_ROOT}/build/liqonet/Dockerfile" "${LIQO_ROOT}" || exit 1
+    else
+        docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/common/Dockerfile" --build-arg=COMPONENT="${COMPONENT}" "${LIQO_ROOT}" || exit 1
+    fi
+    docker tag "${IMAGE}" "${IMAGE_BASE}:latest"
+    docker push "${IMAGE}"
+    docker push "${IMAGE_BASE}:latest"
+
+    if [[ "${DEPLOY}" == "false" ]]; then
+        continue
+    fi
+
+    # Update the image in the cluster
+    kind get clusters | while read line; do
+        tput setaf 3; tput bold; echo "Updating ${COMPONENT} in cluster ${line} with image ${IMAGE}"
+        tput sgr0
+
+        export KUBECONFIG="${HOME}/liqo_kubeconf_${line}"
+        if [[ "${COMPONENT}" == "liqonet" ]]; then
+            envsubst <"${DIRPATH}/gateway-patch.yaml" | kubectl -n liqo patch deployment liqo-gateway --patch-file=/dev/stdin
+            envsubst <"${DIRPATH}/networkmanager-patch.yaml" | kubectl -n liqo patch deployment liqo-network-manager --patch-file=/dev/stdin
+        else
+            PATCH_YAML="${DIRPATH}/${COMPONENT}-patch.yaml"
+            PATCH_JSON="${DIRPATH}/${COMPONENT}-patch.json"
+            if [ -f "${PATCH_YAML}" ]; then
+                envsubst <"${PATCH_YAML}" | kubectl -n liqo patch deployment "liqo-${COMPONENT}" --patch-file=/dev/stdin
+            fi
+            if [ -f "${PATCH_JSON}" ]; then
+                envsubst <"${PATCH_JSON}" | kubectl -n liqo patch deployment "liqo-${COMPONENT}" --patch-file=/dev/stdin --type json
+            fi
+        fi
+    done
 done
 
 echo
-tput setaf 2; tput bold; echo "LIQONET BUILT AND DEPLOYED SUCCESSFULLY"
+tput setaf 2
+tput bold
+echo "LIQONET BUILT AND DEPLOYED"
 tput sgr0
 echo

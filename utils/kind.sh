@@ -194,7 +194,7 @@ function liqoctl_install_kind() {
     --set gateway.metrics.serviceMonitor.enabled="${monitorEnabled}" \
     --set controllerManager.config.resourceSharingPercentage="80" \
     --disable-telemetry \
-    --version "v0.8.3" \
+    --version "f4c5549847b2814ad4dadda3007bf79db91f479d" \
     --set virtualKubelet.metrics.enabled=true \
     --set virtualKubelet.metrics.port=1234 \
     --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}"
