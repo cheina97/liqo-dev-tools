@@ -22,17 +22,16 @@ export POD_CIDR_TMPL='10.1X2.0.0/16'
 CLUSTER_NAMES=()
 declare -A PEERING_CMDS
 for i in $(seq 1 "$END"); do
-    CLUSTER_NAMES+=("cluster${i}")
+    CLUSTER_NAMES+=("cheina-cluster${i}")
 done
 
 # Delete all old clusters
-kind-deleteall-cluster
+doforall kind-delete-cluster "${CLUSTER_NAMES[@]}"
 
 # create registry container unless it already exists
 kind-registry
 
 # Create clusters
-#doforall_asyncandwait_withargandindex kind-create-cluster "${CNI}" "${CLUSTER_NAMES[@]}"
 doforall_asyncandwait_withargandindex kind-create-cluster "${CNI}" "${CLUSTER_NAMES[@]}"
 
 sleep 3s

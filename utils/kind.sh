@@ -76,10 +76,10 @@ function kind-get-kubeconfig() {
   kind get kubeconfig --name "${cluster_name}" >"$HOME/liqo_kubeconf_${cluster_name}"
 }
 
-function kind-deleteall-cluster() {
-  echo -e "\nDeleting old clusters"
-  kind delete clusters --all
-  echo -e "\n"
+function kind-delete-cluster() {
+  cluster_name=$1
+  echo "Deleting ${cluster_name}"
+  kind delete clusters "${cluster_name}"
 }
 
 function kind-connect-registry() {

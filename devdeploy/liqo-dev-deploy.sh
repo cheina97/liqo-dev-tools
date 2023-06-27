@@ -5,8 +5,8 @@ PATCHDIRPATH=$(dirname "$FILEPATH")/patch
 TAG="$(date +%s)"
 LIQO_ROOT="${HOME}/Documents/liqo/liqo"
 DEPLOY=true
-#FIXEDVKIMAGE="localhost:5001/virtual-kubelet:1687513991"
-#FIXEDCTRLMGRIMAGE="localhost:5001/controller-manager:1687513991"
+FIXEDVKIMAGE="localhost:5001/virtual-kubelet:1687872687"
+#FIXEDCTRLMGRIMAGE="localhost:5001/controller-manager:1687872687"
 
 COMPONENTS=(
     "controller-manager"
@@ -65,7 +65,7 @@ for COMPONENT in "${COMPONENTS[@]}"; do
     fi
 
     # Update the image in the cluster
-    kind get clusters | while read line; do
+    kind get clusters| grep cheina | while read line; do
         tput setaf 3
         tput bold
         echo "Updating ${COMPONENT} in cluster ${line} with image ${IMAGE}"
