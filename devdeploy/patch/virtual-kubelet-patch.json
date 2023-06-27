@@ -3,6 +3,6 @@
   {
     "op": "add",
     "path": "/spec/template/spec/containers/0/args/5",
-    "value": "--kubelet-image=${VK_IMAGE}"
+    "value": "--kubelet-image=${IMAGE}"
   }
 ]

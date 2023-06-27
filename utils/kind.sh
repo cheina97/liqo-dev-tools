@@ -35,6 +35,7 @@ function kind-create-cluster() {
   index=$2
   CNI=$3
   POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
+  #POD_CIDR="11.34.0.0/16"
   SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL"|sed "s/X/${index}/g")
 
   DISABLEDEFAULTCNI="false"
@@ -55,16 +56,6 @@ nodes:
     extraMounts:
     - hostPath: /opt/cni/bin
       containerPath: /opt/cni/bin
-  - role: worker
-    image: kindest/node:v1.25.0
-    extraMounts:
-    - hostPath: /opt/cni/bin
-      containerPath: /opt/cni/bin
-  - role: worker
-    image: kindest/node:v1.25.0
-    extraMounts:
-    - hostPath: /opt/cni/bin
-      containerPath: /opt/cni/bin
 containerdConfigPatches:
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
@@ -77,6 +68,7 @@ EOF
   kind create cluster --name "${cluster_name}" --config "liqo-${cluster_name}-config.yaml"
   rm "liqo-${cluster_name}-config.yaml"
   echo "Cluster ${cluster_name} created"
+  #kubectl taint node --all node-role.kubernetes.io/control-plane-
 }
 
 function kind-get-kubeconfig() {
@@ -194,7 +186,7 @@ function liqoctl_install_kind() {
     --set gateway.metrics.serviceMonitor.enabled="${monitorEnabled}" \
     --set controllerManager.config.resourceSharingPercentage="80" \
     --disable-telemetry \
-    --version "f4c5549847b2814ad4dadda3007bf79db91f479d" \
+    --version "87cccaa4040f573e908301856bd26340790be179" \
     --set virtualKubelet.metrics.enabled=true \
     --set virtualKubelet.metrics.port=1234 \
     --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}"

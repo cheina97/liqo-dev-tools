@@ -25,13 +25,14 @@ for i in $(seq 1 "$END"); do
     CLUSTER_NAMES+=("cluster${i}")
 done
 
-# create registry container unless it already exists
-kind-registry
-
 # Delete all old clusters
 kind-deleteall-cluster
 
+# create registry container unless it already exists
+kind-registry
+
 # Create clusters
+#doforall_asyncandwait_withargandindex kind-create-cluster "${CNI}" "${CLUSTER_NAMES[@]}"
 doforall_asyncandwait_withargandindex kind-create-cluster "${CNI}" "${CLUSTER_NAMES[@]}"
 
 sleep 3s
@@ -46,7 +47,7 @@ doforall_asyncandwait kind-connect-registry "${CLUSTER_NAMES[@]}"
 doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 
 # Install loadbalancer
-#doforall_asyncandwait_withindex install_loadbalancer "${CLUSTER_NAMES[@]}"
+# doforall_asyncandwait_withindex install_loadbalancer "${CLUSTER_NAMES[@]}"
 
 # Install metrics-server
 #doforall_asyncandwait metrics-server_install_kind "${CLUSTER_NAMES[@]}"
@@ -61,7 +62,7 @@ doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 doforall_asyncandwait_withindex liqoctl_install_kind "${CLUSTER_NAMES[@]}"
 
 # Deploy Dev Version
-#liqo-dev-deploy
+liqo-dev-deploy
 
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAMES[@]}"; do
     export KUBECONFIG="$HOME/liqo_kubeconf_${CLUSTER_NAME_ITEM}"

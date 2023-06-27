@@ -3,5 +3,5 @@ spec:
     spec:
       containers:
       - name: network-manager
-        image: "${LIQONET_IMAGE}"
+        image: "${IMAGE}"
 

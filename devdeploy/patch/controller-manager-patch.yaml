@@ -3,5 +3,5 @@ spec:
     spec:
       containers:
       - name: controller-manager
-        image: "${CONTROLLER_MANAGER_IMAGE}"
+        image: "${IMAGE}"
 
