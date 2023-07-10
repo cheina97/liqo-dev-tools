@@ -42,6 +42,11 @@ function kind-create-cluster() {
   if [ "$CNI" != "kind" ]; then
     DISABLEDEFAULTCNI="true"
   fi
+  
+# Adds the following to the kind config to run flannel:
+# extraMounts:
+# - hostPath: /opt/cni/bin
+#   containerPath: /opt/cni/bin
 
   cat <<EOF >"liqo-${cluster_name}-config.yaml"
 kind: Cluster
@@ -53,9 +58,6 @@ networking:
 nodes:
   - role: control-plane
     image: kindest/node:v1.25.0
-    extraMounts:
-    - hostPath: /opt/cni/bin
-      containerPath: /opt/cni/bin
 containerdConfigPatches:
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
@@ -186,7 +188,7 @@ function liqoctl_install_kind() {
     --set gateway.metrics.serviceMonitor.enabled="${monitorEnabled}" \
     --set controllerManager.config.resourceSharingPercentage="80" \
     --disable-telemetry \
-    --version "87cccaa4040f573e908301856bd26340790be179" \
+    --version "1bd0d45ed31cf5e2fa54584e31c400ab5c3a2485" \
     --set virtualKubelet.metrics.enabled=true \
     --set virtualKubelet.metrics.port=1234 \
     --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}"
@@ -222,5 +224,5 @@ function prometheus_install_kind() {
     echo ""
   done
   kubectl apply -f "$HOME/Documents/Kubernetes/kube-prometheus/manifests/"
-  kubectl create clusterrolebinding --clusterrole cluster-admin --serviceaccount monitoring:prometheus-k8s god
+  kubectl create clusterrolebinding --clusterrole cluster-admin --serviceaccount monitoring:prometheus-k8s prometheus-k8s-admin 
 }

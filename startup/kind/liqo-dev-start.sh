@@ -25,6 +25,8 @@ for i in $(seq 1 "$END"); do
     CLUSTER_NAMES+=("cheina-cluster${i}")
 done
 
+noti -k -t "Liqo Start :rocket:" -m "Cheina started ${END} clusters"
+
 # Delete all old clusters
 doforall kind-delete-cluster "${CLUSTER_NAMES[@]}"
 
@@ -60,6 +62,8 @@ doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 # Install liqo
 doforall_asyncandwait_withindex liqoctl_install_kind "${CLUSTER_NAMES[@]}"
 
+noti -k -t "Liqo Start :rocket:" -m "Cheina clusters started"
+
 # Deploy Dev Version
 liqo-dev-deploy
 
@@ -80,3 +84,4 @@ if [ "$ENABLE_AUTOPEERING" == "true" ]; then
         done
     done
 fi
+

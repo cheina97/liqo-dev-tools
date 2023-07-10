@@ -5,7 +5,7 @@ PATCHDIRPATH=$(dirname "$FILEPATH")/patch
 TAG="$(date +%s)"
 LIQO_ROOT="${HOME}/Documents/liqo/liqo"
 DEPLOY=true
-FIXEDVKIMAGE="localhost:5001/virtual-kubelet:1687872687"
+#FIXEDVKIMAGE="localhost:5001/virtual-kubelet:1688721308"
 #FIXEDCTRLMGRIMAGE="localhost:5001/controller-manager:1687872687"
 
 COMPONENTS=(
@@ -17,6 +17,8 @@ COMPONENTS=(
 if [ $# -ne 0 ] && [ "$1" != "all" ]; then
     COMPONENTS=("$@")
 fi
+
+noti -k -t "Liqo Build :toolbox:" -m "Cheina started building components: ${COMPONENTS[*]}"
 
 for COMPONENT in "${COMPONENTS[@]}"; do
     tput setaf 3
@@ -97,3 +99,5 @@ tput bold
 echo "LIQONET BUILT AND DEPLOYED"
 tput sgr0
 echo
+
+noti -k -t "Liqo Build :toolbox:" -m "Cheina images built and deployed"
