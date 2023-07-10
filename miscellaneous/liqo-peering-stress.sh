@@ -9,9 +9,8 @@ on_error(){
  
 trap 'on_error' ERR
 
-n_loops=$(($1-1))
-
 noti -k -t "Liqo Peering Stress :fire:" -m "Cheina started peering stress test: ${n_loops} loops"
+n_loops=$(($1-1))
 
 export KUBECONFIG=$HOME/liqo_kubeconf_cheina-cluster2
 
@@ -20,16 +19,16 @@ PEERCMD=$(liqoctl generate peer-command --only-command)
 export KUBECONFIG=$HOME/liqo_kubeconf_cheina-cluster1
 
 eval "${PEERCMD}"
-sleep 5s
+sleep 2s
 
 for((i=0;i<n_loops;i++)); do
     liqoctl unpeer out-of-band  cheina-cluster2 --skip-confirm
-    sleep 5s
+    sleep 2s
     if [ $((i%10)) -eq 0 ] && [ $i -ne 0 ]; then
         noti -k -t "Liqo Peering Stress :fire:" -m "Cheina peering stress test: reached ${i} loops" 
     fi
     eval "${PEERCMD}"
-    sleep 5s
+    sleep 2s
 done
 
 liqoctl unpeer out-of-band  cheina-cluster2 --skip-confirm
