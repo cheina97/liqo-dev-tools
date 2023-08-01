@@ -10,6 +10,16 @@ find . -name "*.sh" -not -path "./utils/*"| while read -r file; do
     fi
 done
 
+find . -name "*.py" -not -path "./utils/*"| while read -r file; do 
+    src="${PWD}/${file}"
+    dst=./bin/"$(basename "${file}" .py)"
+    
+    if [ ! -f "${dst}" ]; then
+        ln -s "${src}" "${dst}"
+        echo "Symlink created: ${dst}"
+    fi
+done
+
 echo
 
 declare -A RC_FILES=( ["BASH"]=".bashrc" ["ZSH"]=".zshrc")
