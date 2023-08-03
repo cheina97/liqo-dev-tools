@@ -72,12 +72,15 @@ doforall kind-delete-cluster "${CLUSTER_NAMES[@]}"
 kind-registry
 
 # Create clusters
-doforall_asyncandwait_withargandindex kind-create-cluster "${CNI}" "${CLUSTER_NAMES[@]}"
+#doforall_asyncandwait_withargandindex kind-create-cluster "${CNI}" "${CLUSTER_NAMES[@]}"
+doforall_withargandindex kind-create-cluster "${CNI}" "${CLUSTER_NAMES[@]}"
 
 sleep 3s
 
 # Create kubeconfig
 doforall kind-get-kubeconfig "${CLUSTER_NAMES[@]}"
+
+exit 0
 
 # Connect the registry to the cluster network if not already connected
 doforall_asyncandwait kind-connect-registry "${CLUSTER_NAMES[@]}"
@@ -86,7 +89,7 @@ doforall_asyncandwait kind-connect-registry "${CLUSTER_NAMES[@]}"
 doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 
 # Install loadbalancer
-# doforall_asyncandwait_withindex install_loadbalancer "${CLUSTER_NAMES[@]}"
+#doforall_asyncandwait_withindex install_loadbalancer "${CLUSTER_NAMES[@]}"
 
 # Install metrics-server
 #doforall_asyncandwait metrics-server_install_kind "${CLUSTER_NAMES[@]}"
@@ -96,6 +99,11 @@ doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 
 # Install ArgoCD
 #doforall_asyncandwait install_argocd "${CLUSTER_NAMES[@]}"
+
+# Init Network Playground
+#doforall liqo-dev-networkplayground "${CLUSTER_NAMES[@]}"
+
+#exit 0
 
 # Install liqo
 doforall_asyncandwait_withindex liqoctl_install_kind "${CLUSTER_NAMES[@]}"

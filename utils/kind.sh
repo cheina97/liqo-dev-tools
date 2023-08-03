@@ -35,7 +35,6 @@ function kind-create-cluster() {
   index=$2
   CNI=$3
   POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
-  POD_CIDR="11.34.0.0/16"
   SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL"|sed "s/X/${index}/g")
 
   DISABLEDEFAULTCNI="false"
@@ -57,7 +56,11 @@ networking:
   disableDefaultCNI: ${DISABLEDEFAULTCNI}
 nodes:
   - role: control-plane
-    image: kindest/node:v1.25.0
+    image: kindest/node:v1.27.3
+  - role: worker
+    image: kindest/node:v1.27.3
+  - role: worker
+    image: kindest/node:v1.27.3
 containerdConfigPatches:
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
@@ -70,7 +73,7 @@ EOF
   kind create cluster --name "${cluster_name}" --config "liqo-${cluster_name}-config.yaml"
   rm "liqo-${cluster_name}-config.yaml"
   echo "Cluster ${cluster_name} created"
-  #kubectl taint node --all node-role.kubernetes.io/control-plane-
+  kubectl taint node --all node-role.kubernetes.io/control-plane-
 }
 
 function kind-get-kubeconfig() {
@@ -158,7 +161,7 @@ function install_cni() {
   if [ "${CNI}" == cilium ]; then
     cilium install --wait
   elif [ "${CNI}" == calico ]; then
-    kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.1/manifests/tigera-operator.yaml
+    kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml
     export POD_CIDR
     envsubst < "$DIRPATH/../../utils/calico.yaml" | kubectl apply -f -
   elif [ "${CNI}" == flannel ]; then

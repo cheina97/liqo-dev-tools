@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: liqo-route
+spec:
+  selector:
+    matchLabels:
+      app: liqo-route
+  template:
+    metadata:
+      labels:
+        app: liqo-route
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
+      hostNetwork: true
+      containers:
+      - name: liqo-route
+        imagePullPolicy: Always
+        securityContext:
+          privileged: true
+          allowPrivilegeEscalation: true
+        image: localhost:5001/liqo/dev-networkplayground:v0.0.3
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"

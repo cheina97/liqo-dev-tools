@@ -9,8 +9,9 @@ on_error(){
  
 trap 'on_error' ERR
 
+n_loops=$1
 noti -k -t "Liqo Peering Stress :fire:" -m "Cheina started peering stress test: ${n_loops} loops"
-n_loops=$(($1-1))
+n_loops=$((n_loops-1))
 
 export KUBECONFIG=$HOME/liqo_kubeconf_cheina-cluster2
 

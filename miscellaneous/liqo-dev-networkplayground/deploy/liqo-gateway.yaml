@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: liqo-gateway
+spec:
+  selector:
+    matchLabels:
+      app: liqo-gateway
+  template:
+    metadata:
+      labels:
+        app: liqo-gateway
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+      containers:
+      - name: liqo-gateway
+        securityContext:
+          privileged: true
+          allowPrivilegeEscalation: true
+        imagePullPolicy: Always
+        image: localhost:5001/liqo/dev-networkplayground:v0.0.3
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+          - containerPort: 51820
+            protocol: UDP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: liqo-gateway
+spec:
+  type: LoadBalancer
+  selector:
+    app: liqo-gateway
+  ports:
+  - port: 51820
+    targetPort: 51820
+    protocol: UDP
