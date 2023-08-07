@@ -10,8 +10,8 @@ spec:
     # Note: The ipPools section cannot be modified post-install.
     ipPools:
     - blockSize: 26
-      cidr: $POD_CIDR
-      encapsulation: VXLANCrossSubnet
+      cidr: ${POD_CIDR}
+      encapsulation: VXLAN
       natOutgoing: Enabled
       nodeSelector: all()
 

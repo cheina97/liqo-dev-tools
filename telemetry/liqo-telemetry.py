@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.9
 
 import argparse
 import boto3
@@ -58,6 +58,7 @@ if __name__ == "__main__":
             if not city:
                 city = ip.get("geo", {}).get("timezone", "unknown")
             provider = telemetry.get("provider", "unknown")
+            liqoVersion = telemetry.get("liqoVersion", "unknown")
             providers[provider] = providers.get(provider, 0) + 1
 
             incoming, outgoing, ns = 0, 0, 0
@@ -85,7 +86,7 @@ if __name__ == "__main__":
                 continue
 
             providers_shown[provider] = providers_shown.get(provider, 0) + 1
-            print(f"Provider: {provider:10s} - Outgoing: {outgoing}, Incoming: {incoming}, "
+            print(f"Provider: {provider:10s} - Version: {liqoVersion}, Outgoing: {outgoing}, Incoming: {incoming}, "
                   f"Namespaces: {ns} - Duration: {delta.days:3d}{star} days - Location: {country} ({city})")
 
     print("\nProviders summary (shown/total):")

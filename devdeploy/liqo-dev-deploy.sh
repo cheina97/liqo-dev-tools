@@ -5,6 +5,7 @@ PATCHDIRPATH=$(dirname "$FILEPATH")/patch
 TAG="$(date +%s)"
 LIQO_ROOT="${HOME}/Documents/liqo/liqo"
 DEPLOY=true
+#FIXEDLIQONETIMAGE="localhost:5001/liqonet:1687872687"
 #FIXEDVKIMAGE="localhost:5001/virtual-kubelet:1688721308"
 #FIXEDCTRLMGRIMAGE="localhost:5001/controller-manager:1687872687"
 
@@ -38,8 +39,13 @@ for COMPONENT in "${COMPONENTS[@]}"; do
     tput sgr0
 
     if [[ "${COMPONENT}" == "liqonet" ]]; then
-        docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/liqonet/Dockerfile" "${LIQO_ROOT}" || exit 1
-        #docker buildx build --push --platform linux/amd64,linux/arm64 --tag "ghcr.io/cheina97/${COMPONENT}:${TAG}" --file="${LIQO_ROOT}/build/liqonet/Dockerfile" "${LIQO_ROOT}" || exit 1
+        if [[ -z "${FIXEDLIQONETIMAGE}" ]]; then
+            docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/liqonet/Dockerfile" "${LIQO_ROOT}" || exit 1
+            docker buildx build --push --platform linux/amd64,linux/arm64 --tag "ghcr.io/cheina97/${COMPONENT}:${TAG}" --file="${LIQO_ROOT}/build/liqonet/Dockerfile" "${LIQO_ROOT}" || exit 1
+        else
+            IMAGE="${FIXEDLIQONETIMAGE}"
+            SKIPPUSH=true
+        fi
     elif [[ "${COMPONENT}" == "controller-manager" ]]; then
         if [[ -z "${FIXEDCTRLMGRIMAGE}" ]]; then
             docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/common/Dockerfile" --build-arg=COMPONENT="liqo-${COMPONENT}" "${LIQO_ROOT}" || exit 1
@@ -77,6 +83,8 @@ for COMPONENT in "${COMPONENTS[@]}"; do
         if [[ "${COMPONENT}" == "liqonet" ]]; then
             envsubst <"${PATCHDIRPATH}/gateway-patch.yaml" | kubectl -n liqo patch deployment liqo-gateway --patch-file=/dev/stdin
             envsubst <"${PATCHDIRPATH}/network-manager-patch.yaml" | kubectl -n liqo patch deployment liqo-network-manager --patch-file=/dev/stdin
+            envsubst <"${PATCHDIRPATH}/route-patch.yaml" | kubectl -n liqo patch daemonsets liqo-route --patch-file=/dev/stdin
+            kubectl set env -n liqo deployment/liqo-gateway WIREGUARD_IMPLEMENTATION=userspace
         elif [[ "${COMPONENT}" == "virtual-kubelet" ]]; then
             PATCH_JSON="${PATCHDIRPATH}/${COMPONENT}-patch.json"
             envsubst <"${PATCH_JSON}" | kubectl -n liqo patch deployment liqo-controller-manager --patch-file=/dev/stdin --type json

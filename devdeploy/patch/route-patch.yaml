@@ -2,7 +2,6 @@ spec:
   template:
     spec:
       containers:
-      - name: gateway
+      - name: route
         image: "${IMAGE}"
-      
 

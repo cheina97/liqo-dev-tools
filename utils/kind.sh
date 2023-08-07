@@ -57,10 +57,6 @@ networking:
 nodes:
   - role: control-plane
     image: kindest/node:v1.27.3
-  - role: worker
-    image: kindest/node:v1.27.3
-  - role: worker
-    image: kindest/node:v1.27.3
 containerdConfigPatches:
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
@@ -73,7 +69,7 @@ EOF
   kind create cluster --name "${cluster_name}" --config "liqo-${cluster_name}-config.yaml"
   rm "liqo-${cluster_name}-config.yaml"
   echo "Cluster ${cluster_name} created"
-  kubectl taint node --all node-role.kubernetes.io/control-plane-
+  #kubectl taint node --all node-role.kubernetes.io/control-plane-
 }
 
 function kind-get-kubeconfig() {
@@ -192,7 +188,7 @@ function liqoctl_install_kind() {
     --set gateway.metrics.serviceMonitor.enabled="${monitorEnabled}" \
     --set controllerManager.config.resourceSharingPercentage="80" \
     --disable-telemetry \
-    --version "e4efd7144b34f2aa3f727460c1fe979381bda6e5" \
+    --version "a0e3f1b56dd56969b3c5a25a97265123ca2cd61d" \
     --set virtualKubelet.metrics.enabled=true \
     --set virtualKubelet.metrics.port=1234 \
     --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}"
