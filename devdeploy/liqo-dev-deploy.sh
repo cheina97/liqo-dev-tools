@@ -10,8 +10,8 @@ DEPLOY=true
 #FIXEDCTRLMGRIMAGE="localhost:5001/controller-manager:1687872687"
 
 COMPONENTS=(
-    #"controller-manager"
-    #"virtual-kubelet"
+    "controller-manager"
+    "virtual-kubelet"
     "liqonet"
 )
 
@@ -41,7 +41,7 @@ for COMPONENT in "${COMPONENTS[@]}"; do
     if [[ "${COMPONENT}" == "liqonet" ]]; then
         if [[ -z "${FIXEDLIQONETIMAGE}" ]]; then
             docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/liqonet/Dockerfile" "${LIQO_ROOT}" || exit 1
-            docker buildx build --push --platform linux/amd64,linux/arm64 --tag "ghcr.io/cheina97/${COMPONENT}:${TAG}" --file="${LIQO_ROOT}/build/liqonet/Dockerfile" "${LIQO_ROOT}" || exit 1
+            #docker buildx build --push --platform linux/amd64,linux/arm64 --tag "ghcr.io/cheina97/${COMPONENT}:${TAG}" --file="${LIQO_ROOT}/build/liqonet/Dockerfile" "${LIQO_ROOT}" || exit 1
         else
             IMAGE="${FIXEDLIQONETIMAGE}"
             SKIPPUSH=true

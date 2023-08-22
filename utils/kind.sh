@@ -29,49 +29,6 @@ function kind-registry() {
   fi
 }
 
-function kind-create-cluster() {
-  #export KIND_EXPERIMENTAL_DOCKER_NETWORK=kind-liqo-${cluster_name}
-  cluster_name=$1
-  index=$2
-  CNI=$3
-  POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
-  SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL"|sed "s/X/${index}/g")
-
-  DISABLEDEFAULTCNI="false"
-  if [ "$CNI" != "kind" ]; then
-    DISABLEDEFAULTCNI="true"
-  fi
-  
-# Adds the following to the kind config to run flannel:
-# extraMounts:
-# - hostPath: /opt/cni/bin
-#   containerPath: /opt/cni/bin
-
-  cat <<EOF >"liqo-${cluster_name}-config.yaml"
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-networking:
-  serviceSubnet: "${SERVICE_CIDR}"
-  podSubnet: "${POD_CIDR}"
-  disableDefaultCNI: ${DISABLEDEFAULTCNI}
-nodes:
-  - role: control-plane
-    image: kindest/node:v1.27.3
-containerdConfigPatches:
-- |-
-  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
-    endpoint = ["http://${reg_name_proxy_dh}:5000"]
-  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."ghcr.io"]
-    endpoint = ["http://${reg_name_proxy_ghcr}:5000"]
-  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:${reg_port}"]
-    endpoint = ["http://${reg_name}:5000"]
-EOF
-  kind create cluster --name "${cluster_name}" --config "liqo-${cluster_name}-config.yaml"
-  rm "liqo-${cluster_name}-config.yaml"
-  echo "Cluster ${cluster_name} created"
-  #kubectl taint node --all node-role.kubernetes.io/control-plane-
-}
-
 function kind-get-kubeconfig() {
   cluster_name="$1"
   kind get kubeconfig --name "${cluster_name}" >"$HOME/liqo_kubeconf_${cluster_name}"
@@ -166,6 +123,7 @@ function install_cni() {
     kubectl label --overwrite ns kube-flannel pod-security.kubernetes.io/enforce=privileged
     helm repo add flannel https://flannel-io.github.io/flannel/
     helm install flannel --set podCidr="${POD_CIDR}" --namespace kube-flannel flannel/flannel
+    kubectl wait --for=condition=ready pod --selector=app=flannel --timeout=90s -n kube-flannel
   fi
 }
 
@@ -179,6 +137,8 @@ function liqoctl_install_kind() {
   #    monitorEnabled="true"
   #fi
 
+  current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
+
   liqoctl install kind --cluster-name "${cluster_name}" \
     --timeout "180m" \
     --cluster-labels="cl.liqo.io/name=${cluster_name}" \
@@ -188,7 +148,7 @@ function liqoctl_install_kind() {
     --set gateway.metrics.serviceMonitor.enabled="${monitorEnabled}" \
     --set controllerManager.config.resourceSharingPercentage="80" \
     --disable-telemetry \
-    --version "a0e3f1b56dd56969b3c5a25a97265123ca2cd61d" \
+    --version "${current_version}" \
     --set virtualKubelet.metrics.enabled=true \
     --set virtualKubelet.metrics.port=1234 \
     --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}"
@@ -225,4 +185,60 @@ function prometheus_install_kind() {
   done
   kubectl apply -f "$HOME/Documents/Kubernetes/kube-prometheus/manifests/"
   kubectl create clusterrolebinding --clusterrole cluster-admin --serviceaccount monitoring:prometheus-k8s prometheus-k8s-admin 
+}
+
+function kind-create-cluster() {
+  #export KIND_EXPERIMENTAL_DOCKER_NETWORK=kind-liqo-${cluster_name}
+  cluster_name=$1
+  index=$2
+  CNI=$3
+  POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
+  SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL"|sed "s/X/${index}/g")
+
+  DISABLEDEFAULTCNI="false"
+  if [ "$CNI" != "kind" ]; then
+    DISABLEDEFAULTCNI="true"
+  fi
+  
+# Adds the following to the kind config to run flannel:
+# extraMounts:
+# - hostPath: /opt/cni/bin
+#   containerPath: /opt/cni/bin
+
+  cat <<EOF >"liqo-${cluster_name}-config.yaml"
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  serviceSubnet: "${SERVICE_CIDR}"
+  podSubnet: "${POD_CIDR}"
+  disableDefaultCNI: ${DISABLEDEFAULTCNI}
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.27.3
+    extraMounts:
+      - hostPath: /opt/cni/bin
+        containerPath: /opt/cni/bin
+  - role: worker
+    image: kindest/node:v1.27.3
+    extraMounts:
+      - hostPath: /opt/cni/bin
+        containerPath: /opt/cni/bin
+  - role: worker
+    image: kindest/node:v1.27.3
+    extraMounts:
+      - hostPath: /opt/cni/bin
+        containerPath: /opt/cni/bin
+containerdConfigPatches:
+- |-
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+    endpoint = ["http://${reg_name_proxy_dh}:5000"]
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."ghcr.io"]
+    endpoint = ["http://${reg_name_proxy_ghcr}:5000"]
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:${reg_port}"]
+    endpoint = ["http://${reg_name}:5000"]
+EOF
+  kind create cluster --name "${cluster_name}" --config "liqo-${cluster_name}-config.yaml"
+  rm "liqo-${cluster_name}-config.yaml"
+  echo "Cluster ${cluster_name} created"
+  #kubectl taint node --all node-role.kubernetes.io/control-plane-
 }
