@@ -10,8 +10,8 @@ DEPLOY=true
 #FIXEDCTRLMGRIMAGE="localhost:5001/controller-manager:1687872687"
 
 COMPONENTS=(
-    "controller-manager"
-    "virtual-kubelet"
+    #"controller-manager"
+    #"virtual-kubelet"
     "liqonet"
 )
 
@@ -84,7 +84,11 @@ for COMPONENT in "${COMPONENTS[@]}"; do
             envsubst <"${PATCHDIRPATH}/gateway-patch.yaml" | kubectl -n liqo patch deployment liqo-gateway --patch-file=/dev/stdin
             envsubst <"${PATCHDIRPATH}/network-manager-patch.yaml" | kubectl -n liqo patch deployment liqo-network-manager --patch-file=/dev/stdin
             envsubst <"${PATCHDIRPATH}/route-patch.yaml" | kubectl -n liqo patch daemonsets liqo-route --patch-file=/dev/stdin
-            kubectl set env -n liqo deployment/liqo-gateway WIREGUARD_IMPLEMENTATION=userspace
+            #kubectl set env -n liqo deployment/liqo-gateway WIREGUARD_IMPLEMENTATION=userspace
+            kubectl set env -n liqo deployment/liqo-gateway IPTABLES_MODE=nf_tables
+            kubectl set env -n liqo deployment/liqo-network-manager IPTABLES_MODE=nf_tables
+            kubectl set env -n liqo daemonset/liqo-route IPTABLES_MODE=nf_tables
+
         elif [[ "${COMPONENT}" == "virtual-kubelet" ]]; then
             PATCH_JSON="${PATCHDIRPATH}/${COMPONENT}-patch.json"
             envsubst <"${PATCH_JSON}" | kubectl -n liqo patch deployment liqo-controller-manager --patch-file=/dev/stdin --type json
