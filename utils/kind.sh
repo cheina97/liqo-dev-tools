@@ -151,7 +151,10 @@ function liqoctl_install_kind() {
     --version "${current_version}" \
     --set virtualKubelet.metrics.enabled=true \
     --set virtualKubelet.metrics.port=1234 \
-    --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}"
+    --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}"\
+    --set networkManager.config.iptablesMode="nf_tables" \
+    --set route.config.iptablesMode="nf_tables" \
+    --set gateway.config.iptablesMode="nf_tables"
     
   #--set controllerManager.config.enableNodeFailureController=true \
   #--set gateway.service.type=LoadBalancer \
