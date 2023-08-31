@@ -1,15 +1,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: liqo-route
+  name: liqo-gateway-fou
 spec:
   selector:
     matchLabels:
-      app: liqo-route
+      app: liqo-gateway-fou
   template:
     metadata:
       labels:
-        app: liqo-route
+        app: liqo-gateway-fou
     spec:
       affinity:
         nodeAffinity:
@@ -17,16 +17,35 @@ spec:
             nodeSelectorTerms:
             - matchExpressions:
               - key: node-role.kubernetes.io/control-plane
-                operator: DoesNotExist
-      hostNetwork: true
+                operator: Exists
       containers:
-      - name: liqo-route
-        imagePullPolicy: Always
+      - name: liqo-gateway-fou
         securityContext:
           privileged: true
-          allowPrivilegeEscalation: true
+          capabilities:
+            add:
+            - NET_ADMIN
+            - NET_RAW
+        imagePullPolicy: Always
         image: localhost:5001/liqo/dev-networkplayground:v0.0.4
         resources:
           limits:
             memory: "128Mi"
             cpu: "500m"
+        ports:
+          - containerPort: 5555
+            protocol: UDP
+            name: fou
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: liqo-gateway-fou
+spec:
+  type: LoadBalancer
+  selector:
+    app: liqo-gateway-fou
+  ports:
+  - port: 5555
+    targetPort: fou
+    protocol: UDP

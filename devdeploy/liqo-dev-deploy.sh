@@ -8,11 +8,13 @@ DEPLOY=true
 #FIXEDLIQONETIMAGE="localhost:5001/liqonet:1687872687"
 #FIXEDVKIMAGE="localhost:5001/virtual-kubelet:1688721308"
 #FIXEDCTRLMGRIMAGE="localhost:5001/controller-manager:1687872687"
+#FIXEDMETRICIMAGE="localhost:5001/metric-agent:1687872687"
 
 COMPONENTS=(
     #"controller-manager"
     #"virtual-kubelet"
-    "liqonet"
+    #"liqonet"
+    "metric-agent"
 )
 
 if [ $# -ne 0 ] && [ "$1" != "all" ]; then
@@ -60,6 +62,11 @@ for COMPONENT in "${COMPONENTS[@]}"; do
             IMAGE="${FIXEDVKIMAGE}"
             SKIPPUSH=true
         fi
+    elif [[ "${COMPONENT}" == "metric-agent" ]]; then
+        docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/common/Dockerfile" --build-arg=COMPONENT="${COMPONENT}" "${LIQO_ROOT}" || exit 1
+    else
+        IMAGE="${FIXEDMETRICIMAGE}"
+        SKIPPUSH=true
     fi
 
     if [[ "${SKIPPUSH}" == "false" ]]; then
@@ -85,9 +92,9 @@ for COMPONENT in "${COMPONENTS[@]}"; do
             envsubst <"${PATCHDIRPATH}/network-manager-patch.yaml" | kubectl -n liqo patch deployment liqo-network-manager --patch-file=/dev/stdin
             envsubst <"${PATCHDIRPATH}/route-patch.yaml" | kubectl -n liqo patch daemonsets liqo-route --patch-file=/dev/stdin
             #kubectl set env -n liqo deployment/liqo-gateway WIREGUARD_IMPLEMENTATION=userspace
-            kubectl set env -n liqo deployment/liqo-gateway IPTABLES_MODE=nf_tables
-            kubectl set env -n liqo deployment/liqo-network-manager IPTABLES_MODE=nf_tables
-            kubectl set env -n liqo daemonset/liqo-route IPTABLES_MODE=nf_tables
+            #kubectl set env -n liqo deployment/liqo-gateway IPTABLES_MODE=nf_tables
+            #kubectl set env -n liqo deployment/liqo-network-manager IPTABLES_MODE=nf_tables
+            #kubectl set env -n liqo daemonset/liqo-route IPTABLES_MODE=nf_tables
 
         elif [[ "${COMPONENT}" == "virtual-kubelet" ]]; then
             PATCH_JSON="${PATCHDIRPATH}/${COMPONENT}-patch.json"

@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client
+spec:
+  selector:
+    matchLabels:
+      app: client
+  template:
+    metadata:
+      labels:
+        app: client
+    spec:
+      containers:
+      - name: client
+        image: nicolaka/netshoot
+        command: ["/bin/bash"]
+        args: ["-c", "sleep infinity"]
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+            - NET_ADMIN
+            - NET_RAW
+        ports:
+        - containerPort: 3000
+          protocol: TCP
+          name: client-tcp
+        
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: client-tcp
+spec:
+  type: LoadBalancer
+  selector:
+    app: client
+  ports:
+  - port: 3000
+    targetPort: client-tcp
+    protocol: TCP

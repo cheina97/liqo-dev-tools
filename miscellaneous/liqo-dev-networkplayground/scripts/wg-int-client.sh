@@ -5,8 +5,8 @@ wg genkey > privatekey-ext
 wg pubkey < privatekey-ext > publickey-ext
 
 ip link add dev wg-ext type wireguard
-ip address add dev wg-ext 169.254.0.2/30
-wg set wg-ext private-key ./privatekey-ext peer E2wAEOOJz0GgV2qNUQmrd9LP0E/ga6M7WM+rDseJQAQ= allowed-ips 0.0.0.0/0 endpoint 172.17.0.1:51820
+ip address add dev wg-ext 20.1.0.2/24
+wg set wg-ext private-key ./privatekey-ext peer gtBpyXwEzeYcWqmT3NjxrFMP1efrw8RbGmSkhtFliBk= allowed-ips 0.0.0.0/0 endpoint 172.31.2.200:51820
 ip link set up dev wg-ext
 
 sysctl -w net.ipv4.ip_forward=1

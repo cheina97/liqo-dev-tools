@@ -1,5 +1,5 @@
-FROM ubuntu
+FROM alpine:3.18
 
-RUN apt update && apt install -y iproute2 iputils-ping net-tools iptables tcpdump wireguard curl
+RUN apk add --no-cache iproute2 iputils-ping net-tools iptables tcpdump wireguard-tools curl
 
-CMD [ "/usr/bin/sleep", "infinity" ]
+CMD [ "/bin/sleep", "infinity" ]

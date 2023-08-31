@@ -138,6 +138,7 @@ function liqoctl_install_kind() {
   #fi
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
+  current_version=50eed0c5a27385730caec4a981049fd064bbddff 
 
   liqoctl install kind --cluster-name "${cluster_name}" \
     --timeout "180m" \
@@ -151,10 +152,8 @@ function liqoctl_install_kind() {
     --version "${current_version}" \
     --set virtualKubelet.metrics.enabled=true \
     --set virtualKubelet.metrics.port=1234 \
-    --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}"\
-    --set networkManager.config.iptablesMode="nf_tables" \
-    --set route.config.iptablesMode="nf_tables" \
-    --set gateway.config.iptablesMode="nf_tables"
+    --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}" \
+    --set telemetry.enable=true
     
   #--set controllerManager.config.enableNodeFailureController=true \
   #--set gateway.service.type=LoadBalancer \
@@ -218,19 +217,6 @@ networking:
 nodes:
   - role: control-plane
     image: kindest/node:v1.27.3
-    extraMounts:
-      - hostPath: /opt/cni/bin
-        containerPath: /opt/cni/bin
-  - role: worker
-    image: kindest/node:v1.27.3
-    extraMounts:
-      - hostPath: /opt/cni/bin
-        containerPath: /opt/cni/bin
-  - role: worker
-    image: kindest/node:v1.27.3
-    extraMounts:
-      - hostPath: /opt/cni/bin
-        containerPath: /opt/cni/bin
 containerdConfigPatches:
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
@@ -243,5 +229,5 @@ EOF
   kind create cluster --name "${cluster_name}" --config "liqo-${cluster_name}-config.yaml"
   rm "liqo-${cluster_name}-config.yaml"
   echo "Cluster ${cluster_name} created"
-  #kubectl taint node --all node-role.kubernetes.io/control-plane-
+  #kubectl taint node "${cluster_name}-control-plane" node-role.kubernetes.io/control-plane- || true
 }
