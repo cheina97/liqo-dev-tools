@@ -138,7 +138,7 @@ function liqoctl_install_kind() {
   #fi
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=50eed0c5a27385730caec4a981049fd064bbddff 
+  current_version=3a13ba43d67fccc1460fc2e885401bfe4ae08aa9 
 
   liqoctl install kind --cluster-name "${cluster_name}" \
     --timeout "180m" \
@@ -148,12 +148,11 @@ function liqoctl_install_kind() {
     --set gateway.metrics.enabled=true \
     --set gateway.metrics.serviceMonitor.enabled="${monitorEnabled}" \
     --set controllerManager.config.resourceSharingPercentage="80" \
-    --disable-telemetry \
     --version "${current_version}" \
     --set virtualKubelet.metrics.enabled=true \
     --set virtualKubelet.metrics.port=1234 \
-    --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}" \
-    --set telemetry.enable=true
+    --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}"
+    
     
   #--set controllerManager.config.enableNodeFailureController=true \
   #--set gateway.service.type=LoadBalancer \

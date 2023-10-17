@@ -9,12 +9,16 @@ DEPLOY=true
 #FIXEDVKIMAGE="localhost:5001/virtual-kubelet:1688721308"
 #FIXEDCTRLMGRIMAGE="localhost:5001/controller-manager:1687872687"
 #FIXEDMETRICIMAGE="localhost:5001/metric-agent:1687872687"
+#FIXEDGATEWAYIMAGE="localhost:5001/gateway:1687872687"
+#FIXEDWGGATEWAYIMAGE="localhost:5001/wg-gateway:1687872687"
 
 COMPONENTS=(
-    #"controller-manager"
+    "controller-manager"
     #"virtual-kubelet"
     #"liqonet"
-    "metric-agent"
+    #"metric-agent"
+    "gateway"
+    "gateway/wireguard"
 )
 
 if [ $# -ne 0 ] && [ "$1" != "all" ]; then
@@ -64,6 +68,10 @@ for COMPONENT in "${COMPONENTS[@]}"; do
         fi
     elif [[ "${COMPONENT}" == "metric-agent" ]]; then
         docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/common/Dockerfile" --build-arg=COMPONENT="${COMPONENT}" "${LIQO_ROOT}" || exit 1
+    elif [[ "${COMPONENT}" == "gateway" ]]; then
+        docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/gateway/Dockerfile" "${LIQO_ROOT}" || exit 1
+    elif [[ "${COMPONENT}" == "gateway/wireguard" ]]; then
+        docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/gateway/wireguard/Dockerfile" "${LIQO_ROOT}" || exit 1
     else
         IMAGE="${FIXEDMETRICIMAGE}"
         SKIPPUSH=true
@@ -99,6 +107,12 @@ for COMPONENT in "${COMPONENTS[@]}"; do
         elif [[ "${COMPONENT}" == "virtual-kubelet" ]]; then
             PATCH_JSON="${PATCHDIRPATH}/${COMPONENT}-patch.json"
             envsubst <"${PATCH_JSON}" | kubectl -n liqo patch deployment liqo-controller-manager --patch-file=/dev/stdin --type json
+        elif [[ "${COMPONENT}" == "gateway" ]]; then
+            envsubst <"${PATCHDIRPATH}/gateway-patch.json" | kubectl -n liqo patch wggatewayservertemplate  wg-server-template --patch-file=/dev/stdin --type json
+            envsubst <"${PATCHDIRPATH}/gateway-patch.json" | kubectl -n liqo patch wggatewayclienttemplate  wg-client-template --patch-file=/dev/stdin --type json
+        elif [[ "${COMPONENT}" == "gateway/wireguard" ]]; then
+            envsubst <"${PATCHDIRPATH}/gateway-wireguard-patch.json" | kubectl -n liqo patch wggatewayservertemplate  wg-server-template --patch-file=/dev/stdin --type json
+            envsubst <"${PATCHDIRPATH}/gateway-wireguard-patch.json" | kubectl -n liqo patch wggatewayclienttemplate  wg-client-template --patch-file=/dev/stdin --type json
         else
             PATCH_YAML="${PATCHDIRPATH}/${COMPONENT}-patch.yaml"
             PATCH_JSON="${PATCHDIRPATH}/${COMPONENT}-patch.json"
