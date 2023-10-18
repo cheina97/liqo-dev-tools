@@ -13,12 +13,12 @@ DEPLOY=true
 #FIXEDWGGATEWAYIMAGE="localhost:5001/wg-gateway:1687872687"
 
 COMPONENTS=(
-    "controller-manager"
+    #"controller-manager"
     #"virtual-kubelet"
-    #"liqonet"
+    "liqonet"
     #"metric-agent"
-    "gateway"
-    "gateway/wireguard"
+    #"gateway"
+    #"gateway/wireguard"
 )
 
 if [ $# -ne 0 ] && [ "$1" != "all" ]; then
@@ -108,11 +108,11 @@ for COMPONENT in "${COMPONENTS[@]}"; do
             PATCH_JSON="${PATCHDIRPATH}/${COMPONENT}-patch.json"
             envsubst <"${PATCH_JSON}" | kubectl -n liqo patch deployment liqo-controller-manager --patch-file=/dev/stdin --type json
         elif [[ "${COMPONENT}" == "gateway" ]]; then
-            envsubst <"${PATCHDIRPATH}/gateway-patch.json" | kubectl -n liqo patch wggatewayservertemplate  wg-server-template --patch-file=/dev/stdin --type json
-            envsubst <"${PATCHDIRPATH}/gateway-patch.json" | kubectl -n liqo patch wggatewayclienttemplate  wg-client-template --patch-file=/dev/stdin --type json
+            envsubst <"${PATCHDIRPATH}/gateway-patch.json" | kubectl -n liqo patch wggatewayservertemplate  wireguard-server --patch-file=/dev/stdin --type json
+            envsubst <"${PATCHDIRPATH}/gateway-patch.json" | kubectl -n liqo patch wggatewayclienttemplate  wireguard-client --patch-file=/dev/stdin --type json
         elif [[ "${COMPONENT}" == "gateway/wireguard" ]]; then
-            envsubst <"${PATCHDIRPATH}/gateway-wireguard-patch.json" | kubectl -n liqo patch wggatewayservertemplate  wg-server-template --patch-file=/dev/stdin --type json
-            envsubst <"${PATCHDIRPATH}/gateway-wireguard-patch.json" | kubectl -n liqo patch wggatewayclienttemplate  wg-client-template --patch-file=/dev/stdin --type json
+            envsubst <"${PATCHDIRPATH}/gateway-wireguard-patch.json" | kubectl -n liqo patch wggatewayservertemplate  wireguard-server --patch-file=/dev/stdin --type json
+            envsubst <"${PATCHDIRPATH}/gateway-wireguard-patch.json" | kubectl -n liqo patch wggatewayclienttemplate  wireguard-client --patch-file=/dev/stdin --type json
         else
             PATCH_YAML="${PATCHDIRPATH}/${COMPONENT}-patch.yaml"
             PATCH_JSON="${PATCHDIRPATH}/${COMPONENT}-patch.json"

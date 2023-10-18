@@ -112,7 +112,8 @@ function install_cni() {
   POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
 
   if [ "${CNI}" == cilium ]; then
-    cilium install --wait
+    cilium install --wait --values "$DIRPATH/../../utils/cilium-values.yaml"
+    cilium status --wait
   elif [ "${CNI}" == calico ]; then
     kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml
     export POD_CIDR
@@ -138,7 +139,7 @@ function liqoctl_install_kind() {
   #fi
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=3a13ba43d67fccc1460fc2e885401bfe4ae08aa9 
+  current_version=306ba33661c73dfaa27224c0ba4f9557059cdafc
 
   liqoctl install kind --cluster-name "${cluster_name}" \
     --timeout "180m" \
