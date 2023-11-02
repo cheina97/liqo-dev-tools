@@ -113,6 +113,11 @@ function install_cni() {
 
   if [ "${CNI}" == cilium ]; then
     cilium install --wait --values "$DIRPATH/../../utils/cilium-values.yaml"
+    #APIIP=$(kubectl get po -n kube-system -o wide "kube-apiserver-${cluster_name}-control-plane" -o jsonpath='{.status.podIP}')
+    #cilium install --wait --values "$DIRPATH/../../utils/cilium-values.yaml" \
+    #  --set kubeProxyReplacement=true \
+    #  --set k8sServiceHost="${APIIP}" \
+    #  --set k8sServicePort="6443"
     cilium status --wait
   elif [ "${CNI}" == calico ]; then
     kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml
@@ -207,6 +212,9 @@ function kind-create-cluster() {
 # - hostPath: /opt/cni/bin
 #   containerPath: /opt/cni/bin
 
+# Adds the following to the kind config to disable kube-proxy:
+#kubeProxyMode: "none"
+
   cat <<EOF >"liqo-${cluster_name}-config.yaml"
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -216,6 +224,10 @@ networking:
   disableDefaultCNI: ${DISABLEDEFAULTCNI}
 nodes:
   - role: control-plane
+    image: kindest/node:v1.27.3
+  - role: worker
+    image: kindest/node:v1.27.3
+  - role: worker
     image: kindest/node:v1.27.3
 containerdConfigPatches:
 - |-
