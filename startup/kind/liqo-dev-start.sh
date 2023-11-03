@@ -89,6 +89,9 @@ doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 # Install loadbalancer
 doforall_asyncandwait_withindex install_loadbalancer "${CLUSTER_NAMES[@]}"
 
+# Install ingress
+doforall_asyncandwait install_ingress "${CLUSTER_NAMES[@]}"
+
 # Install metrics-server
 # doforall_asyncandwait metrics-server_install_kind "${CLUSTER_NAMES[@]}"
 
