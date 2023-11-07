@@ -87,16 +87,16 @@ doforall_asyncandwait kind-connect-registry "${CLUSTER_NAMES[@]}"
 doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 
 # Install loadbalancer
-#doforall_asyncandwait_withindex install_loadbalancer "${CLUSTER_NAMES[@]}"
+doforall_asyncandwait_withindex install_loadbalancer "${CLUSTER_NAMES[@]}"
 
 # Install ingress
 doforall_asyncandwait install_ingress "${CLUSTER_NAMES[@]}"
 
 # Install metrics-server
-# doforall_asyncandwait metrics-server_install_kind "${CLUSTER_NAMES[@]}"
+doforall_asyncandwait metrics-server_install_kind "${CLUSTER_NAMES[@]}"
 
 # Install kube-prometheus
-doforall_asyncandwait prometheus_install_kind "${CLUSTER_NAMES[0]}"
+#doforall_asyncandwait prometheus_install_kind "${CLUSTER_NAMES[0]}"
 
 # Install ArgoCD
 # doforall_asyncandwait install_argocd "${CLUSTER_NAMES[@]}"

@@ -94,10 +94,12 @@ EOF
 }
 
 function install_ingress(){
+  cluster_name="$1"
   export KUBECONFIG="$HOME/liqo_kubeconf_${cluster_name}"
   helm upgrade --install ingress-nginx ingress-nginx \
   --repo https://kubernetes.github.io/ingress-nginx \
-  --namespace ingress-nginx --create-namespace
+  --namespace ingress-nginx --create-namespace \
+  --set controller.ingressClassResource.default=true
 }
 
 function install_argocd(){
