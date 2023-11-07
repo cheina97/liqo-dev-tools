@@ -96,7 +96,7 @@ for COMPONENT in "${COMPONENTS[@]}"; do
 
         export KUBECONFIG="${HOME}/liqo_kubeconf_${line}"
         if [[ "${COMPONENT}" == "liqonet" ]]; then
-            envsubst <"${PATCHDIRPATH}/gateway-patch.yaml" | kubectl -n liqo patch deployment liqo-gateway --patch-file=/dev/stdin
+            envsubst <"${PATCHDIRPATH}/gateway-patch.yaml" | kubectl -n liqo patch deployment liqo-legacy-gateway --patch-file=/dev/stdin
             envsubst <"${PATCHDIRPATH}/network-manager-patch.yaml" | kubectl -n liqo patch deployment liqo-network-manager --patch-file=/dev/stdin
             envsubst <"${PATCHDIRPATH}/route-patch.yaml" | kubectl -n liqo patch daemonsets liqo-route --patch-file=/dev/stdin
             #kubectl set env -n liqo deployment/liqo-gateway WIREGUARD_IMPLEMENTATION=userspace
