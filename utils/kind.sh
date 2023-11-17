@@ -153,7 +153,7 @@ function liqoctl_install_kind() {
   #fi
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  #current_version=306ba33661c73dfaa27224c0ba4f9557059cdafc 
+  #current_version=46948de1c8896ce00d3fcc32230a52c2a7e02887
 
   liqoctl install kind --cluster-name "${cluster_name}" \
     --timeout "180m" \
@@ -233,10 +233,6 @@ networking:
   disableDefaultCNI: ${DISABLEDEFAULTCNI}
 nodes:
   - role: control-plane
-    image: kindest/node:v1.27.3
-  - role: worker
-    image: kindest/node:v1.27.3
-  - role: worker
     image: kindest/node:v1.27.3
 containerdConfigPatches:
 - |-

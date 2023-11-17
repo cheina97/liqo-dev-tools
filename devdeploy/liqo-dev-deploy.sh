@@ -2,9 +2,52 @@
 
 FILEPATH=$(realpath "$0")
 PATCHDIRPATH=$(dirname "$FILEPATH")/patch
+
+function help() {
+  echo "Usage: "
+  echo "  liqo-dev-start [-c component] [-b]"
+  echo "Flags:"
+  echo "  -h  - help"
+  echo "  -c  - component to build (values: all,controller-manager,virtual-kubelet,liqonet,metric-agent,gateway,gateway/wireguard)"
+  echo "  -b  - build without deploying"
+}
+
+DEPLOY=true
+
+COMPONENTS=(
+    "controller-manager"
+    #"virtual-kubelet"
+    "liqonet"
+    #"metric-agent"
+    "gateway"
+    "gateway/wireguard"
+)
+
+# Parse flags
+
+while getopts 'c:bh' flag; do
+  case "$flag" in
+  c)
+    echo "Selected components: ${OPTARG}"
+    IFS="," read -r -a COMPONENTS <<< "${OPTARG}"
+    ;;
+  b)
+    DEPLOY="false"
+    echo "Building without deploying"
+    ;;
+  h) 
+    help
+    exit 0
+    ;;
+  *)
+    help
+    exit 1
+    ;;
+  esac
+done
+
 TAG="$(date +%s)"
 LIQO_ROOT="${HOME}/Documents/liqo/liqo"
-DEPLOY=true
 #FIXEDLIQONETIMAGE="localhost:5001/liqonet:1687872687"
 #FIXEDVKIMAGE="localhost:5001/virtual-kubelet:1688721308"
 #FIXEDCTRLMGRIMAGE="localhost:5001/controller-manager:1687872687"
@@ -12,20 +55,9 @@ DEPLOY=true
 #FIXEDGATEWAYIMAGE="localhost:5001/gateway:1687872687"
 #FIXEDWGGATEWAYIMAGE="localhost:5001/wg-gateway:1687872687"
 
-COMPONENTS=(
-    #"controller-manager"
-    #"virtual-kubelet"
-    "liqonet"
-    #"metric-agent"
-    #"gateway"
-    #"gateway/wireguard"
-)
-
-if [ $# -ne 0 ] && [ "$1" != "all" ]; then
-    COMPONENTS=("$@")
-fi
-
 noti -k -t "Liqo Build :toolbox:" -m "Cheina started building components: ${COMPONENTS[*]}"
+
+echo "Building components: ${COMPONENTS[*]}"
 
 for COMPONENT in "${COMPONENTS[@]}"; do
     tput setaf 3
