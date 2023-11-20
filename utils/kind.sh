@@ -153,7 +153,7 @@ function liqoctl_install_kind() {
   #fi
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  #current_version=46948de1c8896ce00d3fcc32230a52c2a7e02887
+  current_version=af2c4774cf6e0b2080f1ec25ee1480ad617314f4 
 
   liqoctl install kind --cluster-name "${cluster_name}" \
     --timeout "180m" \

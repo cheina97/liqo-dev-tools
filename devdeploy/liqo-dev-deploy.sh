@@ -17,7 +17,7 @@ DEPLOY=true
 COMPONENTS=(
     "controller-manager"
     #"virtual-kubelet"
-    "liqonet"
+    #"liqonet"
     #"metric-agent"
     "gateway"
     "gateway/wireguard"
