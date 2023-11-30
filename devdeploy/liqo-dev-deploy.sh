@@ -19,8 +19,8 @@ COMPONENTS=(
     #"virtual-kubelet"
     #"liqonet"
     #"metric-agent"
-    "gateway"
-    "gateway/wireguard"
+    #"gateway"
+    #"gateway/wireguard"
 )
 
 # Parse flags

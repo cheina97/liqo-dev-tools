@@ -153,7 +153,7 @@ function liqoctl_install_kind() {
   #fi
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=af2c4774cf6e0b2080f1ec25ee1480ad617314f4 
+  current_version=35b65b3c7cd2cc6fbbea6c77c0499cdad5394dd5 
 
   liqoctl install kind --cluster-name "${cluster_name}" \
     --timeout "180m" \
@@ -166,7 +166,8 @@ function liqoctl_install_kind() {
     --version "${current_version}" \
     --set virtualKubelet.metrics.enabled=true \
     --set virtualKubelet.metrics.port=1234 \
-    --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}"
+    --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}"\
+    --set ipam.legacy=false
     
     
   #--set controllerManager.config.enableNodeFailureController=true \
