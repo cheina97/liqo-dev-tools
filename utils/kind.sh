@@ -153,7 +153,7 @@ function liqoctl_install_kind() {
   #fi
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=35b65b3c7cd2cc6fbbea6c77c0499cdad5394dd5 
+  current_version=aed373e3c591b59529d0efd2bb5e54e1519d137b 
 
   liqoctl install kind --cluster-name "${cluster_name}" \
     --timeout "180m" \
@@ -166,9 +166,8 @@ function liqoctl_install_kind() {
     --version "${current_version}" \
     --set virtualKubelet.metrics.enabled=true \
     --set virtualKubelet.metrics.port=1234 \
-    --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}"\
-    --set ipam.legacy=false
-    
+    --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}" \
+    --set ipam.legacy=true  
     
   #--set controllerManager.config.enableNodeFailureController=true \
   #--set gateway.service.type=LoadBalancer \
@@ -210,7 +209,9 @@ function kind-create-cluster() {
   index=$2
   CNI=$3
   POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
+  #POD_CIDR=10.102.0.0/16
   SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL"|sed "s/X/${index}/g")
+  #SERVICE_CIDR=10.103.0.0/16
 
   DISABLEDEFAULTCNI="false"
   if [ "$CNI" != "kind" ]; then

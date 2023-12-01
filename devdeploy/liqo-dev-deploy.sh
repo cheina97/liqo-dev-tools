@@ -15,12 +15,12 @@ function help() {
 DEPLOY=true
 
 COMPONENTS=(
-    "controller-manager"
+    #"controller-manager"
     #"virtual-kubelet"
     #"liqonet"
     #"metric-agent"
-    #"gateway"
-    #"gateway/wireguard"
+    "gateway"
+    "gateway/wireguard"
 )
 
 # Parse flags
