@@ -15,12 +15,14 @@ function help() {
 DEPLOY=true
 
 COMPONENTS=(
-    #"controller-manager"
+    "controller-manager"
     #"virtual-kubelet"
     #"liqonet"
     #"metric-agent"
-    "gateway"
-    "gateway/wireguard"
+    #"gateway"
+    #"gateway/wireguard"
+    "gateway/geneve"
+    "fabric"
 )
 
 # Parse flags
@@ -104,6 +106,10 @@ for COMPONENT in "${COMPONENTS[@]}"; do
         docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/gateway/Dockerfile" "${LIQO_ROOT}" || exit 1
     elif [[ "${COMPONENT}" == "gateway/wireguard" ]]; then
         docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/gateway/wireguard/Dockerfile" "${LIQO_ROOT}" || exit 1
+    elif [[ "${COMPONENT}" == "gateway/geneve" ]]; then
+        docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/gateway/geneve/Dockerfile" "${LIQO_ROOT}" || exit 1
+    elif [[ "${COMPONENT}" == "fabric" ]]; then
+        docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/fabric/Dockerfile" "${LIQO_ROOT}" || exit 1
     else
         IMAGE="${FIXEDMETRICIMAGE}"
         SKIPPUSH=true
@@ -145,6 +151,11 @@ for COMPONENT in "${COMPONENTS[@]}"; do
         elif [[ "${COMPONENT}" == "gateway/wireguard" ]]; then
             envsubst <"${PATCHDIRPATH}/gateway-wireguard-patch.json" | kubectl -n liqo patch wggatewayservertemplate  wireguard-server --patch-file=/dev/stdin --type json
             envsubst <"${PATCHDIRPATH}/gateway-wireguard-patch.json" | kubectl -n liqo patch wggatewayclienttemplate  wireguard-client --patch-file=/dev/stdin --type json
+        elif [[ "${COMPONENT}" == "gateway/geneve" ]]; then
+            envsubst <"${PATCHDIRPATH}/gateway-geneve-patch.json" | kubectl -n liqo patch wggatewayservertemplate  wireguard-server --patch-file=/dev/stdin --type json
+            envsubst <"${PATCHDIRPATH}/gateway-geneve-patch.json" | kubectl -n liqo patch wggatewayclienttemplate  wireguard-client --patch-file=/dev/stdin --type json
+        elif [[ "${COMPONENT}" == "fabric" ]]; then
+            envsubst <"${PATCHDIRPATH}/fabric-patch.yaml" | kubectl -n liqo patch daemonset liqo-fabric --patch-file=/dev/stdin
         else
             PATCH_YAML="${PATCHDIRPATH}/${COMPONENT}-patch.yaml"
             PATCH_JSON="${PATCHDIRPATH}/${COMPONENT}-patch.json"

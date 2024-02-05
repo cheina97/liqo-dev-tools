@@ -153,7 +153,7 @@ function liqoctl_install_kind() {
   #fi
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=aed373e3c591b59529d0efd2bb5e54e1519d137b 
+  current_version=b35c2f8d093f8a57f66e3e61d5f12c96c71908ee 
 
   liqoctl install kind --cluster-name "${cluster_name}" \
     --timeout "180m" \
@@ -167,7 +167,7 @@ function liqoctl_install_kind() {
     --set virtualKubelet.metrics.enabled=true \
     --set virtualKubelet.metrics.port=1234 \
     --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}" \
-    --set ipam.legacy=true  
+    --set ipam.legacy=false  
     
   #--set controllerManager.config.enableNodeFailureController=true \
   #--set gateway.service.type=LoadBalancer \
@@ -235,7 +235,7 @@ networking:
   disableDefaultCNI: ${DISABLEDEFAULTCNI}
 nodes:
   - role: control-plane
-    image: kindest/node:v1.27.3
+    image: kindest/node:v1.29.0
 containerdConfigPatches:
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
