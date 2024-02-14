@@ -119,6 +119,7 @@ function install_cni() {
   index=$2
   CNI=$3
   POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
+  POD_CIDR="10.102.0.0/16"
 
   if [ "${CNI}" == cilium ]; then
     cilium install --wait --values "$DIRPATH/../../utils/cilium-values.yaml"
@@ -153,7 +154,7 @@ function liqoctl_install_kind() {
   #fi
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=b35c2f8d093f8a57f66e3e61d5f12c96c71908ee 
+  current_version=4fc2e8c98f78bdddc3e6f2f662cc8342ce3945c7
 
   liqoctl install kind --cluster-name "${cluster_name}" \
     --timeout "180m" \
@@ -208,10 +209,10 @@ function kind-create-cluster() {
   cluster_name=$1
   index=$2
   CNI=$3
-  POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
-  #POD_CIDR=10.102.0.0/16
-  SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL"|sed "s/X/${index}/g")
-  #SERVICE_CIDR=10.103.0.0/16
+  #POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
+  POD_CIDR="10.102.0.0/16"
+  #SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL"|sed "s/X/${index}/g")
+  SERVICE_CIDR=10.103.0.0/16
 
   DISABLEDEFAULTCNI="false"
   if [ "$CNI" != "kind" ]; then
@@ -235,6 +236,10 @@ networking:
   disableDefaultCNI: ${DISABLEDEFAULTCNI}
 nodes:
   - role: control-plane
+    image: kindest/node:v1.29.0
+  - role: worker
+    image: kindest/node:v1.29.0
+  - role: worker
     image: kindest/node:v1.29.0
 containerdConfigPatches:
 - |-
