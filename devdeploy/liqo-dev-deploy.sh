@@ -19,10 +19,10 @@ COMPONENTS=(
     #"virtual-kubelet"
     #"liqonet"
     #"metric-agent"
-    #"gateway"
-    #"gateway/wireguard"
+    "gateway"
+    "gateway/wireguard"
     "gateway/geneve"
-    "fabric"
+        "fabric"
 )
 
 # Parse flags

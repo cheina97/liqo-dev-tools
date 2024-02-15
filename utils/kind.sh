@@ -69,13 +69,23 @@ function install_loadbalancer() {
   #docker_net=kind-liqo-${cluster_name}
   docker_net="kind"
   index="$2"
+  CNI=$3
   subIp=$(docker network inspect "${docker_net}" | jq ".[0].IPAM.Config" | jq ".[0].Subnet" | cut -d . -f 2)
-  kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
-  until kubectl wait --namespace metallb-system --for=condition=ready pod --selector=app=metallb --timeout=90s 2>/dev/null; do
-    sleep 1s  
-  done
+  
   echo "Setting LoadBalancer pool 172.${subIp}.${index}.200-172.${subIp}.${index}.250"
-  cat <<EOF | kubectl apply -f -
+  if [ "${CNI}" == "cilium-no-kubeproxy" ]; then
+    until kubectl get crd ciliumloadbalancerippools.cilium.io ciliuml2announcementpolicies.cilium.io 2>/dev/null; do
+      sleep 1s
+    done
+    export subIp
+    export index
+    envsubst < "$DIRPATH/../../utils/cilium-lb.yaml" | kubectl apply -f -
+  else
+    kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
+    until kubectl wait --namespace metallb-system --for=condition=ready pod --selector=app=metallb --timeout=90s 2>/dev/null; do
+      sleep 1s  
+    done
+    cat <<EOF | kubectl apply -f -
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
@@ -91,6 +101,8 @@ metadata:
   name: empty
   namespace: metallb-system
 EOF
+  fi
+
 }
 
 function install_ingress(){
@@ -121,14 +133,19 @@ function install_cni() {
   POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
   POD_CIDR="10.102.0.0/16"
 
-  if [ "${CNI}" == cilium ]; then
-    cilium install --wait --values "$DIRPATH/../../utils/cilium-values.yaml"
+  if [ "${CNI}" == cilium ] || [ "${CNI}" == "cilium-no-kubeproxy" ]; then
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_gatewayclasses.yaml
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_gateways.yaml
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_httproutes.yaml
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_referencegrants.yaml
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/experimental/gateway.networking.k8s.io_grpcroutes.yaml
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml
+    cilium install --values "$DIRPATH/../../utils/cilium-values.yaml"
     #APIIP=$(kubectl get po -n kube-system -o wide "kube-apiserver-${cluster_name}-control-plane" -o jsonpath='{.status.podIP}')
     #cilium install --wait --values "$DIRPATH/../../utils/cilium-values.yaml" \
     #  --set kubeProxyReplacement=true \
     #  --set k8sServiceHost="${APIIP}" \
     #  --set k8sServicePort="6443"
-    cilium status --wait
   elif [ "${CNI}" == calico ]; then
     kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml
     export POD_CIDR
@@ -153,13 +170,34 @@ function liqoctl_install_kind() {
   #    monitorEnabled="true"
   #fi
 
+  override_components=(
+    #"controllerManager"
+    #"fabric"
+  )
+
+  override_flags=()
+  override_tag="1712742742"
+  for component in "${override_components[@]}"; do
+    if [ "${component}" == "controllerManager" ]; then
+      image="localhost:5001/controller-manager"
+    else
+      image="localhost:5001/${component}"
+    fi
+    override_flags+=("--set-string=${component}.image.name=${image}")
+    override_flags+=("--set-string=${component}.image.version=${override_tag}")
+  done
+
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=4fc2e8c98f78bdddc3e6f2f662cc8342ce3945c7
+  current_version=cb00f14ca5a7dc66b95cfd0f8d1ffa6531fa253d
+  
+
+  echo "${override_flags[@]}"
 
   liqoctl install kind --cluster-name "${cluster_name}" \
     --timeout "180m" \
     --cluster-labels="cl.liqo.io/name=${cluster_name}" \
     --service-type NodePort \
+    --set peering.networking.gateway.server.service.type=NodePort \
     --local-chart-path "$HOME/Documents/liqo/liqo/deployments/liqo" \
     --set gateway.metrics.enabled=true \
     --set gateway.metrics.serviceMonitor.enabled="${monitorEnabled}" \
@@ -168,7 +206,8 @@ function liqoctl_install_kind() {
     --set virtualKubelet.metrics.enabled=true \
     --set virtualKubelet.metrics.port=1234 \
     --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}" \
-    --set ipam.legacy=false  
+    "${override_flags[@]}"
+
     
   #--set controllerManager.config.enableNodeFailureController=true \
   #--set gateway.service.type=LoadBalancer \
@@ -209,14 +248,19 @@ function kind-create-cluster() {
   cluster_name=$1
   index=$2
   CNI=$3
-  #POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
+  POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
   POD_CIDR="10.102.0.0/16"
-  #SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL"|sed "s/X/${index}/g")
+  SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL"|sed "s/X/${index}/g")
   SERVICE_CIDR=10.103.0.0/16
 
   DISABLEDEFAULTCNI="false"
   if [ "$CNI" != "kind" ]; then
     DISABLEDEFAULTCNI="true"
+  fi
+
+  KUBEPROXYMODE="iptables"
+  if [ "$CNI" == "cilium-no-kubeproxy" ]; then
+    KUBEPROXYMODE="none"
   fi
   
 # Adds the following to the kind config to run flannel:
@@ -233,13 +277,10 @@ apiVersion: kind.x-k8s.io/v1alpha4
 networking:
   serviceSubnet: "${SERVICE_CIDR}"
   podSubnet: "${POD_CIDR}"
+  kubeProxyMode: "${KUBEPROXYMODE}"
   disableDefaultCNI: ${DISABLEDEFAULTCNI}
 nodes:
   - role: control-plane
-    image: kindest/node:v1.29.0
-  - role: worker
-    image: kindest/node:v1.29.0
-  - role: worker
     image: kindest/node:v1.29.0
 containerdConfigPatches:
 - |-

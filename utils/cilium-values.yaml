@@ -5,4 +5,25 @@ affinity:
         - matchExpressions:
           - key: liqo.io/type
             operator: DoesNotExist
-  
+ingressController:
+  enabled: false
+  loadbalancerMode: "shared"
+  default: true
+l2announcements:
+  enabled: false
+externalIPs:
+  enabled: false
+gatewayAPI:
+  enabled: false
+hubble:
+  enabled: false
+  ui:
+    enabled: false
+    frontend:
+      server:
+        ipv6:
+          enabled: false
+    ingress:
+      enabled: true
+  relay:
+    enabled: false
