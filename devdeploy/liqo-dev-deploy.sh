@@ -21,8 +21,8 @@ COMPONENTS=(
     #"metric-agent"
     #"gateway"
     #"gateway/wireguard"
-    "gateway/geneve"
-    "fabric"
+    #"gateway/geneve"
+    #"fabric"
 )
 
 # Parse flags
