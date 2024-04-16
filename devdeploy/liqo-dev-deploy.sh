@@ -16,13 +16,13 @@ DEPLOY=true
 
 COMPONENTS=(
     "controller-manager"
-    #"virtual-kubelet"
+    "virtual-kubelet"
     #"liqonet"
     #"metric-agent"
-    "gateway"
-    "gateway/wireguard"
-    "gateway/geneve"
-        "fabric"
+    #"gateway"
+    #"gateway/wireguard"
+    #"gateway/geneve"
+    #"fabric"
 )
 
 # Parse flags
@@ -132,7 +132,7 @@ for COMPONENT in "${COMPONENTS[@]}"; do
         echo "Updating ${COMPONENT} in cluster ${line} with image ${IMAGE}"
         tput sgr0
 
-        export KUBECONFIG="${HOME}/liqo_kubeconf_${line}"
+        export KUBECONFIG="${HOME}/liqo-kubeconf-${line}"
         if [[ "${COMPONENT}" == "liqonet" ]]; then
             envsubst <"${PATCHDIRPATH}/gateway-patch.yaml" | kubectl -n liqo patch deployment liqo-legacy-gateway --patch-file=/dev/stdin
             envsubst <"${PATCHDIRPATH}/network-manager-patch.yaml" | kubectl -n liqo patch deployment liqo-network-manager --patch-file=/dev/stdin

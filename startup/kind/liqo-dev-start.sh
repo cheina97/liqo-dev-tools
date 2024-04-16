@@ -87,7 +87,7 @@ doforall_asyncandwait kind-connect-registry "${CLUSTER_NAMES[@]}"
 doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 
 # Install loadbalancer
-#doforall_asyncandwait_withargandindex install_loadbalancer "${CNI}" "${CLUSTER_NAMES[@]}"
+# doforall_asyncandwait_withargandindex install_loadbalancer "${CNI}" "${CLUSTER_NAMES[@]}"
 
 # Install ingress
 # doforall_asyncandwait install_ingress "${CLUSTER_NAMES[@]}"
@@ -100,6 +100,9 @@ doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 
 # Install ArgoCD
 # doforall_asyncandwait install_argocd "${CLUSTER_NAMES[@]}"
+
+# Install Kyverno
+doforall_asyncandwait kyverno_install_kind "${CLUSTER_NAMES[@]}"
 
 # Init Network Playground
 # doforall liqo-dev-networkplayground "${CLUSTER_NAMES[@]}"
@@ -114,13 +117,13 @@ if [ "${BUILD}" == "true" ]; then
 fi
 
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAMES[@]}"; do
-  export KUBECONFIG="$HOME/liqo_kubeconf_${CLUSTER_NAME_ITEM}"
+  export KUBECONFIG="$HOME/liqo-kubeconf-${CLUSTER_NAME_ITEM}"
   PEERING_CMDS[${CLUSTER_NAME_ITEM}]="$(liqoctl generate peer-command --only-command)"
 done
 
 if [ "$ENABLE_AUTOPEERING" == "true" ]; then
   for CLUSTER_NAME_ITEM in "${CLUSTER_NAMES[@]}"; do
-    export KUBECONFIG="$HOME/liqo_kubeconf_${CLUSTER_NAME_ITEM}"
+    export KUBECONFIG="$HOME/liqo-kubeconf-${CLUSTER_NAME_ITEM}"
     for PEERING_CMD_NAME in "${!PEERING_CMDS[@]}"; do
       if [ "${PEERING_CMD_NAME}" != "${CLUSTER_NAME_ITEM}" ]; then
         echo "Peering ${CLUSTER_NAME_ITEM} with ${PEERING_CMD_NAME}"

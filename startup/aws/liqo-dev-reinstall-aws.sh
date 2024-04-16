@@ -3,7 +3,7 @@
 function  liqoctl_install_kind() {
     serviceMonitorEnabled="$1"
     resourceSharingPercentage="$2"
-    export KUBECONFIG="$HOME/liqo_kubeconf_${CLUSTER_NAME_ITEM}"
+    export KUBECONFIG="$HOME/liqo-kubeconf-${CLUSTER_NAME_ITEM}"
 
     liqoctl install eks --timeout 60m --eks-cluster-region="${CLUSTER_REGIONS[${i}]}" --eks-cluster-name="${CLUSTER_NAME_ITEM}" \
     --user-name "liqo-cluster-francesco.cheinasso" \
@@ -29,14 +29,14 @@ CLUSTER_REGIONS=("eu-west-1" "eu-west-2")
 
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAMES[@]}"; do
     echo "Unpeering cluster ${CLUSTER_NAME_ITEM} from:"
-    export KUBECONFIG="$HOME/liqo_kubeconf_${CLUSTER_NAME_ITEM}"
+    export KUBECONFIG="$HOME/liqo-kubeconf-${CLUSTER_NAME_ITEM}"
     kubectl get foreignclusters -A| tail -n +2 | while read -r line; do
         cluster_name=$(echo "$line" | tr -s ' ' | cut -d ' ' -f 1)
         peer_type=$(echo "$line" | tr -s ' ' | cut -d ' ' -f 2)
         echo "cluster ${cluster_name} of type ${peer_type}"
         case $peer_type in
             InBand)
-                liqoctl unpeer in-band --remote-kubeconfig "$HOME/liqo_kubeconf_${cluster_name}" 
+                liqoctl unpeer in-band --remote-kubeconfig "$HOME/liqo-kubeconf-${cluster_name}" 
                 ;;
             OutOfBand)
                 liqoctl unpeer out-of-band "$cluster_name"
@@ -47,7 +47,7 @@ done
 
 PIDS=()
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAMES[@]}"; do
-    export KUBECONFIG="$HOME/liqo_kubeconf_${CLUSTER_NAME_ITEM}"
+    export KUBECONFIG="$HOME/liqo-kubeconf-${CLUSTER_NAME_ITEM}"
     liqoctl uninstall --purge &
     PIDS+=($!)
 done
@@ -67,7 +67,7 @@ sleep 1
 PIDS=()
 i=0
 for CLUSTER_NAME_ITEM in "${CLUSTER_NAMES[@]}"; do
-    export KUBECONFIG="$HOME/liqo_kubeconf_${CLUSTER_NAME_ITEM}"
+    export KUBECONFIG="$HOME/liqo-kubeconf-${CLUSTER_NAME_ITEM}"
     serviceMonitorEnabled="false"
     if [[ "${CLUSTER_NAME_ITEM}" == *"1"* ]]; then
         serviceMonitorEnabled="true"

@@ -16,10 +16,10 @@ done
 
 PIDS=()
 
-export KUBECONFIG="$HOME/liqo_kubeconf_gke1"
+export KUBECONFIG="$HOME/liqo-kubeconf-gke1"
 gcloud container clusters get-credentials gke1 --zone=europe-west1-c
 
-export KUBECONFIG="$HOME/liqo_kubeconf_gke2"
+export KUBECONFIG="$HOME/liqo-kubeconf-gke2"
 gcloud container clusters get-credentials gke2 --zone=europe-west2-b
 
 for PID in "${PIDS[@]}"; do
@@ -27,11 +27,11 @@ for PID in "${PIDS[@]}"; do
 done
 
 exit 0
-export KUBECONFIG="$HOME/liqo_kubeconf_gke1"
+export KUBECONFIG="$HOME/liqo-kubeconf-gke1"
 liqoctl install gke --project-id liqo-test --cluster-id gke1 --zone europe-west1-c --credentials-path "${GKE_SERVICE_ACCOUNT_PATH}" &
 PIDS+=($!)
 
-export KUBECONFIG="$HOME/liqo_kubeconf_gke2"
+export KUBECONFIG="$HOME/liqo-kubeconf-gke2"
 liqoctl install gke --project-id liqo-test --cluster-id gke2 --zone europe-west2-b --credentials-path "${GKE_SERVICE_ACCOUNT_PATH}" &
 PIDS+=($!)
 
@@ -44,4 +44,4 @@ tput setaf 2; tput bold; echo "STARTED SUCCESSFULLY"
 tput sgr0
 echo
 
-# liqoctl peer in-band --kubeconfig "$HOME/liqo_kubeconf_gke1" --remote-kubeconfig "$HOME/liqo_kubeconf_gke2" --bidirectional
+# liqoctl peer in-band --kubeconfig "$HOME/liqo-kubeconf-gke1" --remote-kubeconfig "$HOME/liqo-kubeconf-gke2" --bidirectional

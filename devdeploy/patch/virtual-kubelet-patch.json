@@ -1,8 +1,8 @@
 [
-  { "op": "remove", "path": "/spec/template/spec/containers/0/args/5" },
+  { "op": "remove", "path": "/spec/template/spec/containers/0/args/26" },
   {
     "op": "add",
-    "path": "/spec/template/spec/containers/0/args/5",
+    "path": "/spec/template/spec/containers/0/args/26",
     "value": "--kubelet-image=${IMAGE}"
   }
 ]

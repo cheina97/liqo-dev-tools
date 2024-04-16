@@ -9,7 +9,7 @@ export DIRPATH
 
 cluster_name="$1"
 
-export KUBECONFIG="$HOME/liqo_kubeconf_${cluster_name}" 
+export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}" 
 
 kubectl apply -f "$DIRPATH/deploy/liqo-gateway-wg.yaml"
 kubectl wait --for=condition=available deployment/liqo-gateway-wg --timeout=600s

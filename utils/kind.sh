@@ -31,7 +31,7 @@ function kind-registry() {
 
 function kind-get-kubeconfig() {
   cluster_name="$1"
-  kind get kubeconfig --name "${cluster_name}" >"$HOME/liqo_kubeconf_${cluster_name}"
+  kind get kubeconfig --name "${cluster_name}" >"$HOME/liqo-kubeconf-${cluster_name}"
 }
 
 function kind-delete-cluster() {
@@ -47,7 +47,7 @@ function kind-connect-registry() {
     docker network connect "kind" "${reg_name}"
   fi
 
-  export KUBECONFIG="$HOME/liqo_kubeconf_${cluster_name}"
+  export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
   # Document the local registry
   # https://github.com/kubernetes/enhancements/tree/master/keps/sig-cluster-lifecycle/generic/1755-communicating-a-local-registry
   cat <<EOF | kubectl apply -f -
@@ -65,7 +65,7 @@ EOF
 
 function install_loadbalancer() {
   cluster_name="$1"
-  export KUBECONFIG="$HOME/liqo_kubeconf_${cluster_name}"
+  export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
   #docker_net=kind-liqo-${cluster_name}
   docker_net="kind"
   index="$2"
@@ -107,7 +107,7 @@ EOF
 
 function install_ingress(){
   cluster_name="$1"
-  export KUBECONFIG="$HOME/liqo_kubeconf_${cluster_name}"
+  export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
   helm upgrade --install ingress-nginx ingress-nginx \
   --repo https://kubernetes.github.io/ingress-nginx \
   --namespace ingress-nginx --create-namespace \
@@ -116,7 +116,7 @@ function install_ingress(){
 
 function install_argocd(){
   cluster_name="$1"
-  export KUBECONFIG="$HOME/liqo_kubeconf_${cluster_name}"
+  export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
   kubectl create namespace argocd
   kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
   tput setaf 5; tput bold; 
@@ -127,11 +127,11 @@ function install_argocd(){
 
 function install_cni() {
   cluster_name=$1
-  export KUBECONFIG="$HOME/liqo_kubeconf_${cluster_name}"
+  export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
   index=$2
   CNI=$3
   POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
-  POD_CIDR="10.102.0.0/16"
+  #POD_CIDR="10.102.0.0/16"
 
   if [ "${CNI}" == cilium ] || [ "${CNI}" == "cilium-no-kubeproxy" ]; then
     kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_gatewayclasses.yaml
@@ -162,7 +162,7 @@ function install_cni() {
 
 function liqoctl_install_kind() {
   cluster_name="$1"
-  export KUBECONFIG="$HOME/liqo_kubeconf_${cluster_name}"
+  export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
   index="$2"
 
   monitorEnabled="false"
@@ -188,14 +188,14 @@ function liqoctl_install_kind() {
   done
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=cb00f14ca5a7dc66b95cfd0f8d1ffa6531fa253d
+  current_version=a509967f3d70251db49c222f92a894bd809451ea
   
 
   echo "${override_flags[@]}"
 
   liqoctl install kind --cluster-name "${cluster_name}" \
     --timeout "180m" \
-    --cluster-labels="cl.liqo.io/name=${cluster_name}" \
+    --cluster-labels="cl.liqo.io/name=${cluster_name},cl.liqo.io/kubeconfig=liqo-kubeconf-${cluster_name}" \
     --service-type NodePort \
     --set peering.networking.gateway.server.service.type=NodePort \
     --local-chart-path "$HOME/Documents/liqo/liqo/deployments/liqo" \
@@ -225,14 +225,14 @@ function liqoctl_install_kind() {
 
 function metrics-server_install_kind() {
   cluster_name="$1"
-  export KUBECONFIG="$HOME/liqo_kubeconf_${cluster_name}"
+  export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
   kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
   kubectl -n kube-system patch deployment metrics-server --type json --patch '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--kubelet-insecure-tls"}]'
 }
 
 function prometheus_install_kind() {
   cluster_name="$1"
-  export KUBECONFIG="$HOME/liqo_kubeconf_${cluster_name}"
+  export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
   kubectl apply --server-side -f "$HOME/Documents/Kubernetes/kube-prometheus/manifests/setup"
   until kubectl get servicemonitors --all-namespaces; do
     date
@@ -243,15 +243,21 @@ function prometheus_install_kind() {
   kubectl create clusterrolebinding --clusterrole cluster-admin --serviceaccount monitoring:prometheus-k8s prometheus-k8s-admin 
 }
 
+function kyverno_install_kind() {
+  cluster_name="$1"
+  export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
+  helm install kyverno kyverno/kyverno -n kyverno --create-namespace --wait
+}
+
 function kind-create-cluster() {
   #export KIND_EXPERIMENTAL_DOCKER_NETWORK=kind-liqo-${cluster_name}
   cluster_name=$1
   index=$2
   CNI=$3
   POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
-  POD_CIDR="10.102.0.0/16"
+  #POD_CIDR="10.102.0.0/16"
   SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL"|sed "s/X/${index}/g")
-  SERVICE_CIDR=10.103.0.0/16
+  #SERVICE_CIDR=10.103.0.0/16
 
   DISABLEDEFAULTCNI="false"
   if [ "$CNI" != "kind" ]; then
@@ -264,9 +270,22 @@ function kind-create-cluster() {
   fi
   
 # Adds the following to the kind config to run flannel:
-# extraMounts:
-# - hostPath: /opt/cni/bin
-#   containerPath: /opt/cni/bin
+#nodes:
+#  - role: control-plane
+#    image: kindest/node:v1.29.0
+#    extraMounts:
+#      - hostPath: /opt/cni/bin
+#        containerPath: /opt/cni/bin
+#  - role: worker
+#    image: kindest/node:v1.29.0
+#    extraMounts:
+#      - hostPath: /opt/cni/bin
+#        containerPath: /opt/cni/bin
+#  - role: worker
+#    image: kindest/node:v1.29.0
+#    extraMounts:
+#      - hostPath: /opt/cni/bin
+#        containerPath: /opt/cni/bin
 
 # Adds the following to the kind config to disable kube-proxy:
 #kubeProxyMode: "none"
@@ -282,6 +301,10 @@ networking:
 nodes:
   - role: control-plane
     image: kindest/node:v1.29.0
+  - role: worker
+    image: kindest/node:v1.29.0
+  - role: worker
+    image: kindest/node:v1.29.0
 containerdConfigPatches:
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
@@ -294,5 +317,5 @@ EOF
   kind create cluster --name "${cluster_name}" --config "liqo-${cluster_name}-config.yaml"
   rm "liqo-${cluster_name}-config.yaml"
   echo "Cluster ${cluster_name} created"
-  #kubectl taint node "${cluster_name}-control-plane" node-role.kubernetes.io/control-plane- || true
+  kubectl taint node "${cluster_name}-control-plane" node-role.kubernetes.io/control-plane- || true
 }

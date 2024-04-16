@@ -13,11 +13,11 @@ n_loops=$1
 noti -k -t "Liqo Peering Stress :fire:" -m "Cheina started peering stress test: ${n_loops} loops"
 n_loops=$((n_loops-1))
 
-export KUBECONFIG=$HOME/liqo_kubeconf_cheina-cluster2
+export KUBECONFIG=$HOME/liqo-kubeconf-cheina-cluster2
 
 PEERCMD=$(liqoctl generate peer-command --only-command)
 
-export KUBECONFIG=$HOME/liqo_kubeconf_cheina-cluster1
+export KUBECONFIG=$HOME/liqo-kubeconf-cheina-cluster1
 
 eval "${PEERCMD}"
 sleep 2s
