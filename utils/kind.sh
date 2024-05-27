@@ -188,7 +188,7 @@ function liqoctl_install_kind() {
   done
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=a509967f3d70251db49c222f92a894bd809451ea
+  current_version=7ad79823a5c15824183f9c80f174d01ad3e30ada  
   
 
   echo "${override_flags[@]}"
@@ -197,15 +197,10 @@ function liqoctl_install_kind() {
     --timeout "180m" \
     --cluster-labels="cl.liqo.io/name=${cluster_name},cl.liqo.io/kubeconfig=liqo-kubeconf-${cluster_name}" \
     --service-type NodePort \
-    --set peering.networking.gateway.server.service.type=NodePort \
     --local-chart-path "$HOME/Documents/liqo/liqo/deployments/liqo" \
-    --set gateway.metrics.enabled=true \
-    --set gateway.metrics.serviceMonitor.enabled="${monitorEnabled}" \
-    --set controllerManager.config.resourceSharingPercentage="80" \
     --version "${current_version}" \
-    --set virtualKubelet.metrics.enabled=true \
-    --set virtualKubelet.metrics.port=1234 \
-    --set virtualKubelet.metrics.podMonitor.enabled="${monitorEnabled}" \
+    --set fabric.config.fullMasquerade=true \
+    --set networking.gatewayTemplates.wireguard.implementation=userspace \
     "${override_flags[@]}"
 
     
@@ -301,10 +296,19 @@ networking:
 nodes:
   - role: control-plane
     image: kindest/node:v1.29.0
+    extraMounts:
+      - hostPath: /opt/cni/bin
+        containerPath: /opt/cni/bin
   - role: worker
     image: kindest/node:v1.29.0
+    extraMounts:
+      - hostPath: /opt/cni/bin
+        containerPath: /opt/cni/bin
   - role: worker
     image: kindest/node:v1.29.0
+    extraMounts:
+      - hostPath: /opt/cni/bin
+        containerPath: /opt/cni/bin
 containerdConfigPatches:
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
@@ -317,5 +321,5 @@ EOF
   kind create cluster --name "${cluster_name}" --config "liqo-${cluster_name}-config.yaml"
   rm "liqo-${cluster_name}-config.yaml"
   echo "Cluster ${cluster_name} created"
-  kubectl taint node "${cluster_name}-control-plane" node-role.kubernetes.io/control-plane- || true
+  #kubectl taint node "${cluster_name}-control-plane" node-role.kubernetes.io/control-plane- || true
 }
