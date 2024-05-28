@@ -188,7 +188,7 @@ function liqoctl_install_kind() {
   done
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=7ad79823a5c15824183f9c80f174d01ad3e30ada  
+  current_version=e9e262868a9228c6e4d37553d1df73e2264e0cb5  
   
 
   echo "${override_flags[@]}"
