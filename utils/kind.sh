@@ -140,12 +140,19 @@ function install_cni() {
     kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_referencegrants.yaml
     kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/experimental/gateway.networking.k8s.io_grpcroutes.yaml
     kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml
-    cilium install --values "$DIRPATH/../../utils/cilium-values.yaml"
-    #APIIP=$(kubectl get po -n kube-system -o wide "kube-apiserver-${cluster_name}-control-plane" -o jsonpath='{.status.podIP}')
-    #cilium install --wait --values "$DIRPATH/../../utils/cilium-values.yaml" \
-    #  --set kubeProxyReplacement=true \
-    #  --set k8sServiceHost="${APIIP}" \
-    #  --set k8sServicePort="6443"
+    
+    if [ "${CNI}" == "cilium" ]; then
+      cilium install --values "$DIRPATH/../../utils/cilium-values.yaml"
+    fi
+
+    if [ "${CNI}" == "cilium-no-kubeproxy" ]; then
+      APIIP=$(kubectl get po -n kube-system -o wide "kube-apiserver-${cluster_name}-control-plane" -o jsonpath='{.status.podIP}')
+      cilium install --values "$DIRPATH/../../utils/cilium-values.yaml" \
+        --set kubeProxyReplacement=true \
+        --set k8sServiceHost="${APIIP}" \
+        --set k8sServicePort="6443"
+    fi
+
   elif [ "${CNI}" == calico ]; then
     kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml
     export POD_CIDR
@@ -166,9 +173,9 @@ function liqoctl_install_kind() {
   index="$2"
 
   monitorEnabled="false"
-  #if [ "${index}" == "1" ]; then
-  #    monitorEnabled="true"
-  #fi
+  if [ "${index}" == "1" ]; then
+      monitorEnabled="true"
+  fi
 
   override_components=(
     #"controllerManager"
@@ -188,19 +195,22 @@ function liqoctl_install_kind() {
   done
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=e9e262868a9228c6e4d37553d1df73e2264e0cb5  
+  current_version=f18677c13137b96aa9f4d949f5f1843ff41c2da5  
   
 
   echo "${override_flags[@]}"
 
   liqoctl install kind --cluster-name "${cluster_name}" \
     --timeout "180m" \
-    --cluster-labels="cl.liqo.io/name=${cluster_name},cl.liqo.io/kubeconfig=liqo-kubeconf-${cluster_name}" \
+    --cluster-labels="cl.liqo.io/name=${cluster_name}" \
     --service-type NodePort \
     --local-chart-path "$HOME/Documents/liqo/liqo/deployments/liqo" \
     --version "${current_version}" \
-    --set fabric.config.fullMasquerade=true \
+    --set fabric.config.fullMasquerade=false \
     --set networking.gatewayTemplates.wireguard.implementation=userspace \
+    --set networking.fabric.config.gatewayMasqueradeBypass=false \
+    --set "metrics.enabled=${monitorEnabled}" \
+    --set "metrics.prometheusOperator.enabled=${monitorEnabled}" \
     "${override_flags[@]}"
 
     
@@ -295,20 +305,11 @@ networking:
   disableDefaultCNI: ${DISABLEDEFAULTCNI}
 nodes:
   - role: control-plane
-    image: kindest/node:v1.29.0
-    extraMounts:
-      - hostPath: /opt/cni/bin
-        containerPath: /opt/cni/bin
+    image: kindest/node:v1.30.0
   - role: worker
-    image: kindest/node:v1.29.0
-    extraMounts:
-      - hostPath: /opt/cni/bin
-        containerPath: /opt/cni/bin
+    image: kindest/node:v1.30.0
   - role: worker
-    image: kindest/node:v1.29.0
-    extraMounts:
-      - hostPath: /opt/cni/bin
-        containerPath: /opt/cni/bin
+    image: kindest/node:v1.30.0
 containerdConfigPatches:
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]

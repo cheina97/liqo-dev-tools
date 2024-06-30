@@ -22,7 +22,6 @@ function help() {
 # Parse flags
 
 END="2"
-ENABLE_AUTOPEERING="false"
 CNI="kind"
 BUILD="false"
 
@@ -31,10 +30,6 @@ while getopts 'n:bpc:h' flag; do
   n)
     END="$OPTARG"
     echo "Number of clusters: ${END}"
-    ;;
-  p)
-    ENABLE_AUTOPEERING=true
-    echo "Enable autopeering"
     ;;
   b)
     BUILD="true"
@@ -58,7 +53,6 @@ done
 export SERVICE_CIDR_TMPL='10.1X1.0.0/16'
 export POD_CIDR_TMPL='10.1X2.0.0/16'
 CLUSTER_NAMES=()
-declare -A PEERING_CMDS
 for i in $(seq 1 "$END"); do
   CLUSTER_NAMES+=("cheina-cluster${i}")
 done
@@ -93,16 +87,16 @@ doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 # doforall_asyncandwait install_ingress "${CLUSTER_NAMES[@]}"
 
 # Install metrics-server
-# doforall_asyncandwait metrics-server_install_kind "${CLUSTER_NAMES[@]}"
+doforall_asyncandwait metrics-server_install_kind "${CLUSTER_NAMES[@]}"
 
 # Install kube-prometheus
-# doforall_asyncandwait prometheus_install_kind "${CLUSTER_NAMES[0]}"
+doforall_asyncandwait prometheus_install_kind "${CLUSTER_NAMES[0]}"
 
 # Install ArgoCD
 # doforall_asyncandwait install_argocd "${CLUSTER_NAMES[@]}"
 
 # Install Kyverno
-#doforall_asyncandwait kyverno_install_kind "${CLUSTER_NAMES[@]}"
+# doforall_asyncandwait kyverno_install_kind "${CLUSTER_NAMES[@]}"
 
 # Init Network Playground
 # doforall liqo-dev-networkplayground "${CLUSTER_NAMES[@]}"
@@ -116,20 +110,3 @@ if [ "${BUILD}" == "true" ]; then
   liqo-dev-deploy
 fi
 
-for CLUSTER_NAME_ITEM in "${CLUSTER_NAMES[@]}"; do
-  export KUBECONFIG="$HOME/liqo-kubeconf-${CLUSTER_NAME_ITEM}"
-  PEERING_CMDS[${CLUSTER_NAME_ITEM}]="$(liqoctl generate peer-command --only-command)"
-done
-
-if [ "$ENABLE_AUTOPEERING" == "true" ]; then
-  for CLUSTER_NAME_ITEM in "${CLUSTER_NAMES[@]}"; do
-    export KUBECONFIG="$HOME/liqo-kubeconf-${CLUSTER_NAME_ITEM}"
-    for PEERING_CMD_NAME in "${!PEERING_CMDS[@]}"; do
-      if [ "${PEERING_CMD_NAME}" != "${CLUSTER_NAME_ITEM}" ]; then
-        echo "Peering ${CLUSTER_NAME_ITEM} with ${PEERING_CMD_NAME}"
-        echo "${PEERING_CMDS["${PEERING_CMD_NAME}"]}"
-        ${PEERING_CMDS[${PEERING_CMD_NAME}]}
-      fi
-    done
-  done
-fi
