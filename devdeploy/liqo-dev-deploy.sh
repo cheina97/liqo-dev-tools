@@ -15,14 +15,14 @@ function help() {
 DEPLOY=true
 
 COMPONENTS=(
-    "controller-manager"
-    "virtual-kubelet"
+    #"controller-manager"
+    #"virtual-kubelet"
     #"liqonet"
     #"metric-agent"
-    #"gateway"
+    "gateway"
     #"gateway/wireguard"
     #"gateway/geneve"
-    #"fabric"
+    "fabric"
 )
 
 # Parse flags
@@ -56,8 +56,6 @@ LIQO_ROOT="${HOME}/Documents/liqo/liqo"
 #FIXEDMETRICIMAGE="localhost:5001/metric-agent:1687872687"
 #FIXEDGATEWAYIMAGE="localhost:5001/gateway:1687872687"
 #FIXEDWGGATEWAYIMAGE="localhost:5001/wg-gateway:1687872687"
-
-noti -k -t "Liqo Build :toolbox:" -m "Cheina started building components: ${COMPONENTS[*]}"
 
 echo "Building components: ${COMPONENTS[*]}"
 
@@ -175,5 +173,3 @@ tput bold
 echo "LIQONET BUILT AND DEPLOYED"
 tput sgr0
 echo
-
-noti -k -t "Liqo Build :toolbox:" -m "Cheina images built and deployed :white_check_mark:"

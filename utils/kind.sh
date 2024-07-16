@@ -173,9 +173,9 @@ function liqoctl_install_kind() {
   index="$2"
 
   monitorEnabled="false"
-  if [ "${index}" == "1" ]; then
-      monitorEnabled="true"
-  fi
+  #if [ "${index}" == "1" ]; then
+  #    monitorEnabled="true"
+  #fi
 
   override_components=(
     #"controllerManager"
@@ -195,15 +195,14 @@ function liqoctl_install_kind() {
   done
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=f18677c13137b96aa9f4d949f5f1843ff41c2da5  
+  current_version=d8e8eb9532447fa486752441cdd66849967f664c  
   
 
   echo "${override_flags[@]}"
 
-  liqoctl install kind --cluster-name "${cluster_name}" \
+  liqoctl install kind --cluster-id "${cluster_name}" \
     --timeout "180m" \
     --cluster-labels="cl.liqo.io/name=${cluster_name}" \
-    --service-type NodePort \
     --local-chart-path "$HOME/Documents/liqo/liqo/deployments/liqo" \
     --version "${current_version}" \
     --set fabric.config.fullMasquerade=false \
