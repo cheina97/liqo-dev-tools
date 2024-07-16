@@ -5,8 +5,8 @@ CLUSTER_NUMBER=3
 
 CREATE_CLUSTERS=false
 INSTALL_KYVERNO=false
-INSTALL_LBCONTROLLER=true
-INSTALL_LIQO=false
+INSTALL_LBCONTROLLER=false
+INSTALL_LIQO=true
 
 createcluster() {
     local CLUSTER_NAME=$1
@@ -47,15 +47,14 @@ function install_kyverno() {
 
 function install_liqo() {
     local CLUSTER_NAME="$1"
-    LIQO_VERSION="ee1617914bd5cfdc090504c68b386de949b23da9"
+    LIQO_VERSION="ffa3b66f29a65ada071c768e3293cc5765c8bfcc"
     KUBECONFIG="$HOME/liqo-kubeconf-${CLUSTER_NAME}"
 
     liqoctl install eks --eks-cluster-name "${CLUSTER_NAME}" --eks-cluster-region "${AWS_REGION}" \
         --kubeconfig "${KUBECONFIG}" \
-        --user-name liqo-user-cheina-aruba \
+        --user-name liqo-user-frac-aruba-3 \
         --local-chart-path "${HOME}/Documents/liqo/liqo/deployments/liqo" \
-        --version ${LIQO_VERSION} \
-        --cluster-labels="cl.liqo.io/kubeconfig=liqo-kubeconf-${CLUSTER_NAME}"
+        --version ${LIQO_VERSION}
 }
 
 if [ "$CREATE_CLUSTERS" = true ]; then

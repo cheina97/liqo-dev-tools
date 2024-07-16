@@ -173,9 +173,9 @@ function liqoctl_install_kind() {
   index="$2"
 
   monitorEnabled="false"
-  if [ "${index}" == "1" ]; then
-      monitorEnabled="true"
-  fi
+  #if [ "${index}" == "1" ]; then
+  #    monitorEnabled="true"
+  #fi
 
   override_components=(
     #"controllerManager"
@@ -195,24 +195,24 @@ function liqoctl_install_kind() {
   done
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=f18677c13137b96aa9f4d949f5f1843ff41c2da5  
+  current_version=v1.0.0-rc.1  
   
 
   echo "${override_flags[@]}"
 
-  liqoctl install kind --cluster-name "${cluster_name}" \
+  liqoctl install kind --cluster-id "${cluster_name}" \
     --timeout "180m" \
     --cluster-labels="cl.liqo.io/name=${cluster_name}" \
-    --service-type NodePort \
     --local-chart-path "$HOME/Documents/liqo/liqo/deployments/liqo" \
     --version "${current_version}" \
     --set fabric.config.fullMasquerade=false \
-    --set networking.gatewayTemplates.wireguard.implementation=userspace \
     --set networking.fabric.config.gatewayMasqueradeBypass=false \
     --set "metrics.enabled=${monitorEnabled}" \
     --set "metrics.prometheusOperator.enabled=${monitorEnabled}" \
+    --set telemetry.enable=true\
     "${override_flags[@]}"
 
+  #--set networking.gatewayTemplates.wireguard.implementation=userspace \
     
   #--set controllerManager.config.enableNodeFailureController=true \
   #--set gateway.service.type=LoadBalancer \
@@ -305,8 +305,6 @@ networking:
   disableDefaultCNI: ${DISABLEDEFAULTCNI}
 nodes:
   - role: control-plane
-    image: kindest/node:v1.30.0
-  - role: worker
     image: kindest/node:v1.30.0
   - role: worker
     image: kindest/node:v1.30.0

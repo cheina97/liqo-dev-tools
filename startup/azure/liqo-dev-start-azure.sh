@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-CREATE_CLUSTERS=false
+CREATE_CLUSTERS=true
 INSTALL_KYVERNO=false
-INSTALL_LIQO=false
-DESTROY=true
+INSTALL_LIQO=true
+DESTROY=false
 
 ##### Variables #####
 # shellcheck source=/dev/null
@@ -154,7 +154,7 @@ fi
 
 
 # Install Liqo
-VERSION=b1d9f4f22af80d533ed4556bf574e156feb38a03    # v0.10.3
+VERSION=v1.0.0-rc.1    # v0.10.3
 CHART="$HOME/Documents/liqo/liqo/deployments/liqo"       # ""
 if [[ $INSTALL_LIQO == true ]]; then
     PIDS=()

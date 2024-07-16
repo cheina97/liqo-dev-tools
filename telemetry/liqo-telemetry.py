@@ -62,12 +62,6 @@ if __name__ == "__main__":
             #securityMode = telemetry.get("securityMode", "unknown")
             providers[provider] = providers.get(provider, 0) + 1
 
-            incoming, outgoing, ns = 0, 0, 0
-            for peering in telemetry.get("peeringInfo", []):
-                outgoing += 1 if peering["outgoing"]["enabled"] else 0
-                incoming += 1 if peering["incoming"]["enabled"] else 0
-            ns = len(telemetry.get("namespacesInfo", []))
-
             if args.filter_running and star == "*":
                 continue
 
@@ -77,9 +71,6 @@ if __name__ == "__main__":
             if args.filter_peered and outgoing + incoming == 0:
                 continue
 
-            if args.filter_offloaded and not ns:
-                continue
-
             if (include_countries and country not in include_countries) or (include_providers and provider not in include_providers):
                 continue
 
@@ -87,8 +78,8 @@ if __name__ == "__main__":
                 continue
 
             providers_shown[provider] = providers_shown.get(provider, 0) + 1
-            print(f"Provider: {provider:10s} - Version: {liqoVersion}, Outgoing: {outgoing}, Incoming: {incoming}, "
-                  f"Namespaces: {ns} - Duration: {delta.days:3d}{star} days - Location: {country} ({city})")
+            print(f"Provider: {provider:10s} - Version: {liqoVersion}, "
+                  f"Duration: {delta.days:3d}{star} days - Location: {country} ({city})")
 
     print("\nProviders summary (shown/total):")
     total, total_shown = 0, 0

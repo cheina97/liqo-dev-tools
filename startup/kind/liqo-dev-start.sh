@@ -57,8 +57,6 @@ for i in $(seq 1 "$END"); do
   CLUSTER_NAMES+=("cheina-cluster${i}")
 done
 
-noti -k -t "Liqo Start :rocket:" -m "Cheina started ${END} clusters"
-
 # Delete all old clusters
 doforall kind-delete-cluster "${CLUSTER_NAMES[@]}"
 
@@ -87,24 +85,22 @@ doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 # doforall_asyncandwait install_ingress "${CLUSTER_NAMES[@]}"
 
 # Install metrics-server
-doforall_asyncandwait metrics-server_install_kind "${CLUSTER_NAMES[@]}"
+# doforall_asyncandwait metrics-server_install_kind "${CLUSTER_NAMES[@]}"
 
 # Install kube-prometheus
-doforall_asyncandwait prometheus_install_kind "${CLUSTER_NAMES[0]}"
+# doforall_asyncandwait prometheus_install_kind "${CLUSTER_NAMES[0]}"
 
 # Install ArgoCD
 # doforall_asyncandwait install_argocd "${CLUSTER_NAMES[@]}"
 
 # Install Kyverno
-# doforall_asyncandwait kyverno_install_kind "${CLUSTER_NAMES[@]}"
+doforall_asyncandwait kyverno_install_kind "${CLUSTER_NAMES[@]}"
 
 # Init Network Playground
 # doforall liqo-dev-networkplayground "${CLUSTER_NAMES[@]}"
 
 # Install liqo
 doforall_asyncandwait_withindex liqoctl_install_kind "${CLUSTER_NAMES[@]}"
-
-noti -k -t "Liqo Start :rocket:" -m "Cheina clusters ready :white_check_mark:"
 
 if [ "${BUILD}" == "true" ]; then
   liqo-dev-deploy

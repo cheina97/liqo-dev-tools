@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
-CREATE_CLUSTERS=flase
+CREATE_CLUSTERS=false
 INSTALL_KYVERNO=false
 INSTALL_LIQO=false
 DESTROY=true
 
 ##### Variables #####
-export GKE_SERVICE_ACCOUNT_PATH="$HOME/.gke/liqoctl_service_account.json"
+export GKE_SERVICE_ACCOUNT_PATH="$HOME/.liqo/gcp_service_account"
 export GKE_PROJECT_ID="progetto-liqo-cloud"
 
 # Consumer
@@ -26,12 +26,12 @@ GKE_CLUSTER_ZONE_PROV2="europe-west3-a"
 
 
 # General
-NUM_NODES="2"
+NUM_NODES="1"
 MACHINE_TYPE="e2-standard-2" # "e2-micro", "e2-small", "e2-medium", "e2-standard-2", "e2-standard-4"
-IMAGE_TYPE="UBUNTU_CONTAINERD" # "COS_CONTAINERD", "UBUNTU_CONTAINERD"
+IMAGE_TYPE="COS_CONTAINERD" # "COS_CONTAINERD", "UBUNTU_CONTAINERD"
 DISK_TYPE="pd-balanced"
 DISK_SIZE="10"
-DATAPLANE="v1" # "v1", "v2"
+DATAPLANE="v2" # "v1", "v2"
 #####################
 
 
@@ -45,7 +45,7 @@ function gke_create_cluster() {
     local disk_type=$7
     local disk_size=$8
 
-    local cluster_version="1.28.7-gke.1026000"
+    local cluster_version=" 1.29.7-gke.1104000"
 
     if [[ $DATAPLANE == "v2" ]]; then
         arg_dataplane="--enable-dataplane-v2"
@@ -59,7 +59,7 @@ function gke_create_cluster() {
         --default-max-pods-per-node "110" --security-posture=standard --workload-vulnerability-scanning=disabled --no-enable-master-authorized-networks \
         --enable-autorepair --max-surge-upgrade 1 --max-unavailable-upgrade 0 --binauthz-evaluation-mode=DISABLED \
         --addons HorizontalPodAutoscaling,HttpLoadBalancing,GcePersistentDiskCsiDriver \
-        --no-enable-managed-prometheus 
+        --no-enable-managed-prometheus
         # --scopes "https://www.googleapis.com/auth/devstorage.read_only","https://www.googleapis.com/auth/logging.write","https://www.googleapis.com/auth/monitoring","https://www.googleapis.com/auth/servicecontrol","https://www.googleapis.com/auth/service.management.readonly","https://www.googleapis.com/auth/trace.append" \
         # --enable-autoupgrade \
         # --enable-managed-prometheus --logging=SYSTEM,WORKLOAD --monitoring=SYSTEM
@@ -104,11 +104,10 @@ function install_liqo() {
 
     liqoctl install gke --kubeconfig $KUBECONFIG \
         --project-id $GKE_PROJECT_ID \
-        --cluster-name $GKE_CLUSTER_ID \
+        --cluster-id $GKE_CLUSTER_ID \
         --zone $GKE_CLUSTER_ZONE \
         --credentials-path $GKE_SERVICE_ACCOUNT_PATH \
         --version $VERSION $arg_chart \
-        --cluster-labels=cl.liqo.io/kubeconfig=kubeconfig-$NAME \
         --set auth.service.type=NodePort \
         --disable-telemetry --verbose
         # --set "ipam.reservedSubnets={10.156.0.0/16}" \
@@ -126,8 +125,8 @@ if [[ $CREATE_CLUSTERS == true ]]; then
     PIDS+=($!) 
     gke_create_cluster ${GKE_CLUSTER_ID_PROV1} ${GKE_CLUSTER_REGION_PROV1} ${GKE_CLUSTER_ZONE_PROV1} ${NUM_NODES} ${MACHINE_TYPE} ${IMAGE_TYPE} ${DISK_TYPE} ${DISK_SIZE} &
     PIDS+=($!)
-    gke_create_cluster ${GKE_CLUSTER_ID_PROV2} ${GKE_CLUSTER_REGION_PROV2} ${GKE_CLUSTER_ZONE_PROV2} ${NUM_NODES} ${MACHINE_TYPE} ${IMAGE_TYPE} ${DISK_TYPE} ${DISK_SIZE} &
-    PIDS+=($!)
+    #gke_create_cluster ${GKE_CLUSTER_ID_PROV2} ${GKE_CLUSTER_REGION_PROV2} ${GKE_CLUSTER_ZONE_PROV2} ${NUM_NODES} ${MACHINE_TYPE} ${IMAGE_TYPE} ${DISK_TYPE} ${DISK_SIZE} &
+    #PIDS+=($!)
     for PID in "${PIDS[@]}"; do
         wait "$PID"
     done
@@ -142,8 +141,8 @@ if [[ $INSTALL_KYVERNO == true ]]; then
     PIDS+=($!)
     install_kyverno $GKE_CLUSTER_ID_PROV1 &
     PIDS+=($!)
-    install_kyverno $GKE_CLUSTER_ID_PROV2 &
-    PIDS+=($!)
+    #install_kyverno $GKE_CLUSTER_ID_PROV2 &
+    #PIDS+=($!)
     for PID in "${PIDS[@]}"; do
         wait "$PID"
     done
@@ -151,16 +150,16 @@ fi
 
 
 # Install Liqo
-VERSION=bb31fc81fc8f19c14b7647af747cf7ef51fef2ec    # v0.10.3
-CHART="$HOME/repos/liqo-fra/deployments/liqo"       # ""
+VERSION=v1.0.0-rc.1    # v0.10.3
+CHART="${HOME}/Documents/liqo/liqo/deployments/liqo"       # ""
 if [[ $INSTALL_LIQO == true ]]; then
     PIDS=()
     install_liqo $GKE_CLUSTER_ID_CONS $GKE_CLUSTER_ZONE_CONS $VERSION $CHART &
     PIDS+=($!)
     install_liqo $GKE_CLUSTER_ID_PROV1 $GKE_CLUSTER_ZONE_PROV1 $VERSION $CHART &
     PIDS+=($!)
-    install_liqo $GKE_CLUSTER_ID_PROV2 $GKE_CLUSTER_ZONE_PROV2 $VERSION $CHART &
-    PIDS+=($!)
+    #install_liqo $GKE_CLUSTER_ID_PROV2 $GKE_CLUSTER_ZONE_PROV2 $VERSION $CHART &
+    #PIDS+=($!)
     for PID in "${PIDS[@]}"; do
         wait "$PID"
     done
@@ -174,8 +173,8 @@ if [[ $DESTROY == true ]]; then
     PIDS+=($!)
     gcloud container clusters delete $GKE_CLUSTER_ID_PROV1 --zone $GKE_CLUSTER_ZONE_PROV1 --project $GKE_PROJECT_ID --quiet &
     PIDS+=($!)
-    gcloud container clusters delete $GKE_CLUSTER_ID_PROV2 --zone $GKE_CLUSTER_ZONE_PROV2 --project $GKE_PROJECT_ID --quiet &
-    PIDS+=($!)
+    #gcloud container clusters delete $GKE_CLUSTER_ID_PROV2 --zone $GKE_CLUSTER_ZONE_PROV2 --project $GKE_PROJECT_ID --quiet &
+    #PIDS+=($!)
     for PID in "${PIDS[@]}"; do
         wait "$PID"
     done
