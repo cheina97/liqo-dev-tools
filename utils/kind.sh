@@ -195,7 +195,7 @@ function liqoctl_install_kind() {
   done
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=c0906cdb7b0ad1e1402a9d4de75c0f9ab808b139  
+  current_version=d59fcc805e3dec82f0dbac7367bb1e0604f3c61d  
   
 
   echo "${override_flags[@]}"
@@ -305,6 +305,8 @@ networking:
   disableDefaultCNI: ${DISABLEDEFAULTCNI}
 nodes:
   - role: control-plane
+    image: kindest/node:v1.30.0
+  - role: worker
     image: kindest/node:v1.30.0
   - role: worker
     image: kindest/node:v1.30.0
