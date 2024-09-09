@@ -13,8 +13,6 @@ if __name__ == "__main__":
     parser.add_argument("--region", help="The AWS region", default="eu-west-1")
     parser.add_argument("--filter-running", help="Whether to keep only clusters still running", action=argparse.BooleanOptionalAction)
     parser.add_argument("--filter-survivors", help="Whether to keep only clusters survived at least one day", action=argparse.BooleanOptionalAction)
-    parser.add_argument("--filter-peered", help="Whether to keep only clusters with at least one peering active", action=argparse.BooleanOptionalAction)
-    parser.add_argument("--filter-offloaded", help="Whether to keep only clusters with at least one namespace offloaded", action=argparse.BooleanOptionalAction)
     parser.add_argument("--include-countries", help="The comma separated list of countries to include (empty means all")
     parser.add_argument("--exclude-countries", help="The comma separated list of countries to exclude")
     parser.add_argument("--include-providers", help="The comma separated list of providers to include (empty means all)")
@@ -66,9 +64,6 @@ if __name__ == "__main__":
                 continue
 
             if args.filter_survivors and delta.days == 0:
-                continue
-
-            if args.filter_peered and outgoing + incoming == 0:
                 continue
 
             if (include_countries and country not in include_countries) or (include_providers and provider not in include_providers):

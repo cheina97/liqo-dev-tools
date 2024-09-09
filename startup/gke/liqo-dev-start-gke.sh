@@ -45,7 +45,7 @@ function gke_create_cluster() {
     local disk_type=$7
     local disk_size=$8
 
-    local cluster_version=" 1.29.7-gke.1104000"
+    local cluster_version=" 1.30.3-gke.1639000"
 
     if [[ $DATAPLANE == "v2" ]]; then
         arg_dataplane="--enable-dataplane-v2"
@@ -139,8 +139,8 @@ if [[ $INSTALL_KYVERNO == true ]]; then
     PIDS=()
     install_kyverno $GKE_CLUSTER_ID_CONS &
     PIDS+=($!)
-    install_kyverno $GKE_CLUSTER_ID_PROV1 &
-    PIDS+=($!)
+    #install_kyverno $GKE_CLUSTER_ID_PROV1 &
+    #PIDS+=($!)
     #install_kyverno $GKE_CLUSTER_ID_PROV2 &
     #PIDS+=($!)
     for PID in "${PIDS[@]}"; do
@@ -150,7 +150,7 @@ fi
 
 
 # Install Liqo
-VERSION=v1.0.0-rc.1    # v0.10.3
+VERSION=d59fcc805e3dec82f0dbac7367bb1e0604f3c61d    # v0.10.3
 CHART="${HOME}/Documents/liqo/liqo/deployments/liqo"       # ""
 if [[ $INSTALL_LIQO == true ]]; then
     PIDS=()

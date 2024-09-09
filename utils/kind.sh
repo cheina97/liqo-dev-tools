@@ -195,7 +195,7 @@ function liqoctl_install_kind() {
   done
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=d59fcc805e3dec82f0dbac7367bb1e0604f3c61d  
+  current_version=6594a57c779b03017da9f5870ff09f3233e11de3  
   
 
   echo "${override_flags[@]}"
@@ -205,11 +205,10 @@ function liqoctl_install_kind() {
     --cluster-labels="cl.liqo.io/name=${cluster_name}" \
     --local-chart-path "$HOME/Documents/liqo/liqo/deployments/liqo" \
     --version "${current_version}" \
-    --set fabric.config.fullMasquerade=false \
+    --set networking.fabric.config.fullMasquerade=false \
     --set networking.fabric.config.gatewayMasqueradeBypass=false \
     --set "metrics.enabled=${monitorEnabled}" \
     --set "metrics.prometheusOperator.enabled=${monitorEnabled}" \
-    --set telemetry.enable=true\
     "${override_flags[@]}"
 
   #--set networking.gatewayTemplates.wireguard.implementation=userspace \

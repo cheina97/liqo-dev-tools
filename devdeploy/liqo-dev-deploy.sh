@@ -20,9 +20,9 @@ COMPONENTS=(
     #"liqonet"
     #"metric-agent"
     "gateway"
-    #"gateway/wireguard"
-    #"gateway/geneve"
-    "fabric"
+    "gateway/wireguard"
+    "gateway/geneve"
+    #"fabric"
 )
 
 # Parse flags
