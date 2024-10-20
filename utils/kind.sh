@@ -125,6 +125,21 @@ function install_argocd(){
   tput sgr0
 }
 
+function install_kubevirt(){
+  cluster_name="$1"
+  export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
+
+  local KUBEVIRT_VERSION
+  KUBEVIRT_VERSION=$(curl -s https://storage.googleapis.com/kubevirt-prow/release/kubevirt/kubevirt/stable.txt)
+  kubectl create -f "https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-operator.yaml"
+  kubectl create -f "https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-cr.yaml"
+
+local CDI_VERSION
+CDI_VERSION=$(curl -s https://api.github.com/repos/kubevirt/containerized-data-importer/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+kubectl create -f "https://github.com/kubevirt/containerized-data-importer/releases/download/${CDI_VERSION}/cdi-operator.yaml"
+kubectl create -f "https://github.com/kubevirt/containerized-data-importer/releases/download/${CDI_VERSION}/cdi-cr.yaml"
+}
+
 function install_cni() {
   cluster_name=$1
   export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
@@ -195,7 +210,7 @@ function liqoctl_install_kind() {
   done
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=f380966fbe84674945c0e93f5f18770894d8cc67  
+  current_version=a14cfb619a86f66cc0c135301711a1ac21374e01  
   
 
   echo "${override_flags[@]}"
