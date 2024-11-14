@@ -188,9 +188,9 @@ function liqoctl_install_kind() {
   index="$2"
 
   monitorEnabled="false"
-  #if [ "${index}" == "1" ]; then
-  #    monitorEnabled="true"
-  #fi
+  if [ "${index}" == "1" ]; then
+      monitorEnabled="true"
+  fi
 
   override_components=(
     #"controllerManager"
@@ -216,6 +216,7 @@ function liqoctl_install_kind() {
 
   liqoctl install kind --cluster-id "${cluster_name}" \
     --timeout "180m" \
+    --enable-metrics \
     --cluster-labels="cl.liqo.io/name=${cluster_name}" \
     --local-chart-path "$HOME/Documents/liqo/liqo/deployments/liqo" \
     --version "${current_version}" \
@@ -251,14 +252,8 @@ function metrics-server_install_kind() {
 function prometheus_install_kind() {
   cluster_name="$1"
   export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
-  kubectl apply --server-side -f "$HOME/Documents/Kubernetes/kube-prometheus/manifests/setup"
-  until kubectl get servicemonitors --all-namespaces; do
-    date
-    sleep 1
-    echo ""
-  done
-  kubectl apply -f "$HOME/Documents/Kubernetes/kube-prometheus/manifests/"
-  kubectl create clusterrolebinding --clusterrole cluster-admin --serviceaccount monitoring:prometheus-k8s prometheus-k8s-admin 
+
+  helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack -n kube-prometheus-stack --values "$DIRPATH/../../utils/kube-prometheus.yaml" --create-namespace --wait
 }
 
 function kyverno_install_kind() {
