@@ -79,7 +79,7 @@ doforall_asyncandwait kind-connect-registry "${CLUSTER_NAMES[@]}"
 doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 
 # Install loadbalancer
-# doforall_asyncandwait_withargandindex install_loadbalancer "${CNI}" "${CLUSTER_NAMES[@]}"
+#doforall_asyncandwait_withargandindex install_loadbalancer "${CNI}" "${CLUSTER_NAMES[@]}"
 
 # Install ingress
 # doforall_asyncandwait install_ingress "${CLUSTER_NAMES[@]}"
