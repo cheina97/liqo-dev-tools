@@ -210,11 +210,11 @@ function liqoctl_install_kind() {
   done
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=7c99a035120dc2b86b2a6e392816fb9323935967  
+  current_version=00064fb3e142be101d1576ba45846536b75a4aa2  
 
   echo "${override_flags[@]}"
 
-  liqoctl install kind --cluster-id "${cluster_name}" \
+  liqoctl install k3s --cluster-id "${cluster_name}" \
     --timeout "180m" \
     --enable-metrics \
     --cluster-labels="cl.liqo.io/name=${cluster_name}" \
