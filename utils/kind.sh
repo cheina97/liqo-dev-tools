@@ -146,7 +146,7 @@ function install_cni() {
   index=$2
   CNI=$3
   POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
-  #POD_CIDR="10.102.0.0/16"
+  POD_CIDR="10.102.0.0/16"
 
   if [ "${CNI}" == cilium ] || [ "${CNI}" == "cilium-no-kubeproxy" ]; then
     kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_gatewayclasses.yaml
@@ -188,9 +188,9 @@ function liqoctl_install_kind() {
   index="$2"
 
   monitorEnabled="false"
-  if [ "${index}" == "1" ]; then
-      monitorEnabled="true"
-  fi
+  #if [ "${index}" == "1" ]; then
+  #    monitorEnabled="true"
+  #fi
 
   override_components=(
     #"controllerManager"
@@ -210,11 +210,11 @@ function liqoctl_install_kind() {
   done
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=00064fb3e142be101d1576ba45846536b75a4aa2  
+  current_version=2c59c807af377122098ae2bece5291a631c738a4    
 
   echo "${override_flags[@]}"
 
-  liqoctl install k3s --cluster-id "${cluster_name}" \
+  liqoctl install kind --cluster-id "${cluster_name}" \
     --timeout "180m" \
     --enable-metrics \
     --cluster-labels="cl.liqo.io/name=${cluster_name}" \
@@ -224,6 +224,8 @@ function liqoctl_install_kind() {
     --set networking.fabric.config.gatewayMasqueradeBypass=false \
     --set "metrics.enabled=${monitorEnabled}" \
     --set "metrics.prometheusOperator.enabled=${monitorEnabled}" \
+    --set ipam.internal.graphviz=true \
+    --set "ipam.reservedSubnets={172.17.0.0/16}" \
     "${override_flags[@]}"
 
   #--set networking.gatewayTemplates.wireguard.implementation=userspace \
@@ -268,7 +270,7 @@ function kind-create-cluster() {
   index=$2
   CNI=$3
   POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
-  #POD_CIDR="10.102.0.0/16"
+  POD_CIDR="10.102.0.0/16"
   SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL"|sed "s/X/${index}/g")
   #SERVICE_CIDR=10.103.0.0/16
 

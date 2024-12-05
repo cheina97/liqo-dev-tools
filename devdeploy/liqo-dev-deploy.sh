@@ -19,9 +19,10 @@ COMPONENTS=(
     #"virtual-kubelet"
     #"liqonet"
     #"metric-agent"
-    "gateway"
-    "gateway/wireguard"
-    "gateway/geneve"
+    #"gateway"
+    #"gateway/wireguard"
+    #"gateway/geneve"
+    "ipam"
     #"fabric"
 )
 
@@ -108,6 +109,8 @@ for COMPONENT in "${COMPONENTS[@]}"; do
         docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/gateway/geneve/Dockerfile" "${LIQO_ROOT}" || exit 1
     elif [[ "${COMPONENT}" == "fabric" ]]; then
         docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/fabric/Dockerfile" "${LIQO_ROOT}" || exit 1
+    elif [[ "${COMPONENT}" == "ipam" ]]; then
+        docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/common/Dockerfile" --build-arg=COMPONENT="${COMPONENT}" "${LIQO_ROOT}" || exit 1
     else
         IMAGE="${FIXEDMETRICIMAGE}"
         SKIPPUSH=true
