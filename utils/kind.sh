@@ -210,7 +210,7 @@ function liqoctl_install_kind() {
   done
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=2c59c807af377122098ae2bece5291a631c738a4    
+  current_version=1edcd093428edf8ed46b43358dd9ed3e7211636c    
 
   echo "${override_flags[@]}"
 
@@ -222,7 +222,7 @@ function liqoctl_install_kind() {
     --version "${current_version}" \
     --set networking.fabric.config.fullMasquerade=false \
     --set networking.fabric.config.gatewayMasqueradeBypass=false \
-    --set "metrics.enabled=${monitorEnabled}" \
+    --set metrics.enabled=true \
     --set "metrics.prometheusOperator.enabled=${monitorEnabled}" \
     --set ipam.internal.graphviz=true \
     --set "ipam.reservedSubnets={172.17.0.0/16}" \
