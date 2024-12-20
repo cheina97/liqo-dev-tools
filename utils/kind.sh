@@ -210,7 +210,7 @@ function liqoctl_install_kind() {
   done
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=1edcd093428edf8ed46b43358dd9ed3e7211636c    
+  current_version=694b96a7a03963d8d702a689842904ad5f2339e8    
 
   echo "${override_flags[@]}"
 
@@ -287,17 +287,17 @@ function kind-create-cluster() {
 # Adds the following to the kind config to run flannel:
 #nodes:
 #  - role: control-plane
-#    image: kindest/node:v1.29.0
+#    image: kindest/node:v1.30.0
 #    extraMounts:
 #      - hostPath: /opt/cni/bin
 #        containerPath: /opt/cni/bin
 #  - role: worker
-#    image: kindest/node:v1.29.0
+#    image: kindest/node:v1.30.0
 #    extraMounts:
 #      - hostPath: /opt/cni/bin
 #        containerPath: /opt/cni/bin
 #  - role: worker
-#    image: kindest/node:v1.29.0
+#    image: kindest/node:v1.30.0
 #    extraMounts:
 #      - hostPath: /opt/cni/bin
 #        containerPath: /opt/cni/bin

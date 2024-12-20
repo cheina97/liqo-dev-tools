@@ -144,8 +144,8 @@ for COMPONENT in "${COMPONENTS[@]}"; do
             #kubectl set env -n liqo daemonset/liqo-route IPTABLES_MODE=nf_tables
 
         elif [[ "${COMPONENT}" == "virtual-kubelet" ]]; then
-            PATCH_JSON="${PATCHDIRPATH}/${COMPONENT}-patch.json"
-            envsubst <"${PATCH_JSON}" | kubectl -n liqo patch deployment liqo-controller-manager --patch-file=/dev/stdin --type json
+            PATCH_YAML="${PATCHDIRPATH}/${COMPONENT}-patch.yaml"
+            envsubst <"${PATCH_YAML}" | kubectl -n liqo patch vkoptionstemplate virtual-kubelet-default --type merge --patch-file=/dev/stdin
         elif [[ "${COMPONENT}" == "gateway" ]]; then
             envsubst <"${PATCHDIRPATH}/gateway-patch.json" | kubectl -n liqo patch wggatewayservertemplate  wireguard-server --patch-file=/dev/stdin --type json
             envsubst <"${PATCHDIRPATH}/gateway-patch.json" | kubectl -n liqo patch wggatewayclienttemplate  wireguard-client --patch-file=/dev/stdin --type json
