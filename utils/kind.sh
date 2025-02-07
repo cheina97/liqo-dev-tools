@@ -4,6 +4,10 @@ reg_name='kind-registry'
 reg_port='5001'
 
 function kind-registry() {
+  if [ -z "$(docker network ls | grep kind)" ]; then
+    docker network create kind
+  fi
+
   if [ "$(docker inspect -f '{{.State.Running}}' "${reg_name}" 2>/dev/null || true)" != 'true' ]; then
     docker run \
       -d --restart=always -p "127.0.0.1:${reg_port}:5000" --name "${reg_name}" \
@@ -180,12 +184,17 @@ function install_cni() {
     helm install flannel --set podCidr="${POD_CIDR}" --namespace kube-flannel flannel/flannel
     kubectl wait --for=condition=ready pod --selector=app=flannel --timeout=90s -n kube-flannel
   fi
+
+  echo "Waiting for nodes to be ready"
+  kubectl wait --for=condition=ready node --all --timeout=90s
+  echo "Nodes are ready"
 }
 
 function liqoctl_install_kind() {
   cluster_name="$1"
   export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
   index="$2"
+  current_version="$3"
 
   monitorEnabled="false"
   if [ "${index}" == "1" ]; then
@@ -209,9 +218,6 @@ function liqoctl_install_kind() {
     override_flags+=("--set-string=${component}.image.version=${override_tag}")
   done
 
-  current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=09b5e042e84b52cd58e85ee481b39dcac6c42812    
-
   echo "${override_flags[@]}"
 
   liqoctl install kind --cluster-id "${cluster_name}" \
@@ -226,6 +232,7 @@ function liqoctl_install_kind() {
     --set "metrics.prometheusOperator.enabled=${monitorEnabled}" \
     --set ipam.internal.graphviz=true \
     --set "ipam.reservedSubnets={172.17.0.0/16}" \
+    --set "ipam.pools={30.88.128.0/18}" \
     "${override_flags[@]}"
 
   #--set networking.gatewayTemplates.wireguard.implementation=userspace \

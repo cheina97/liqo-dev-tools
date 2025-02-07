@@ -10,13 +10,14 @@ source "$DIRPATH/../../utils/generic.sh"
 
 function help() {
   echo "Usage: "
-  echo "  liqo-dev-start [-h] [-n] [-b] [-c cni] [-p]"
+  echo "  liqo-dev-start [-h] [-n] [-b] [-c cni] [-p] [-v version]"
   echo "Flags:"
   echo "  -h  - help"
   echo "  -n  - number of clusters"
   echo "  -b  - build"
   echo "  -c  - cni (values: kind,calico,cilium,flannel)"
   echo "  -p  - enable autopeering"
+  echo "  -v  - liqo version"
 }
 
 # Parse flags
@@ -25,7 +26,7 @@ END="2"
 CNI="kind"
 BUILD="false"
 
-while getopts 'n:bpc:h' flag; do
+while getopts 'n:bpc:hv:' flag; do
   case "$flag" in
   n)
     END="$OPTARG"
@@ -39,6 +40,10 @@ while getopts 'n:bpc:h' flag; do
     CNI="$OPTARG"
     echo "CNI: ${OPTARG}"
     ;;
+  v)
+    LIQO_VERSION="$OPTARG"
+    echo "LIQO Version: ${LIQO_VERSION}"
+    ;;
   h) 
     help
     exit 0
@@ -49,6 +54,12 @@ while getopts 'n:bpc:h' flag; do
     ;;
   esac
 done
+
+
+if [ -z "${LIQO_VERSION}" ]; then
+  echo "LIQO Version is not set. Exiting."
+  exit 1
+fi
 
 export SERVICE_CIDR_TMPL='10.1X1.0.0/16'
 export POD_CIDR_TMPL='10.1X2.0.0/16'
@@ -104,7 +115,7 @@ doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 # doforall liqo-dev-networkplayground "${CLUSTER_NAMES[@]}"
 
 # Install liqo
-doforall_asyncandwait_withindex liqoctl_install_kind "${CLUSTER_NAMES[@]}"
+doforall_asyncandwait_withargandindex liqoctl_install_kind "${LIQO_VERSION}" "${CLUSTER_NAMES[@]}"
 
 # Install mcs CRDs
 doforall_asyncandwait mcsapi_install_kind "${CLUSTER_NAMES[@]}"
