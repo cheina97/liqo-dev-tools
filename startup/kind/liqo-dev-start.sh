@@ -60,14 +60,12 @@ done
 # Delete all old clusters
 doforall kind-delete-cluster "${CLUSTER_NAMES[@]}"
 
-# create registry container unless it already exists
-kind-registry
-
 # Create clusters
 doforall_asyncandwait_withargandindex kind-create-cluster "${CNI}" "${CLUSTER_NAMES[@]}"
 # doforall_withargandindex kind-create-cluster "${CNI}" "${CLUSTER_NAMES[@]}"
 
-sleep 3s
+# create registry container unless it already exists
+kind-registry
 
 # Create kubeconfig
 doforall kind-get-kubeconfig "${CLUSTER_NAMES[@]}"
@@ -79,10 +77,10 @@ doforall_asyncandwait kind-connect-registry "${CLUSTER_NAMES[@]}"
 doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 
 # Install loadbalancer
-#doforall_asyncandwait_withargandindex install_loadbalancer "${CNI}" "${CLUSTER_NAMES[@]}"
+doforall_asyncandwait_withargandindex install_loadbalancer "${CNI}" "${CLUSTER_NAMES[@]}"
 
 # Install ingress
-# doforall_asyncandwait install_ingress "${CLUSTER_NAMES[@]}"
+doforall_asyncandwait install_ingress "${CLUSTER_NAMES[@]}"
 
 # Install metrics-server
 # doforall_asyncandwait metrics-server_install_kind "${CLUSTER_NAMES[@]}"
@@ -91,13 +89,13 @@ doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 # doforall_asyncandwait prometheus_install_kind "${CLUSTER_NAMES[0]}"
 
 # Install ArgoCD
-#doforall_asyncandwait install_argocd "${CLUSTER_NAMES[@]}"
+# doforall_asyncandwait install_argocd "${CLUSTER_NAMES[@]}"
 
 # Install KubeVirt
 # doforall_asyncandwait install_kubevirt "${CLUSTER_NAMES[@]}"
 
 # Install Kyverno
-doforall_asyncandwait kyverno_install_kind "${CLUSTER_NAMES[@]}"
+# doforall_asyncandwait kyverno_install_kind "${CLUSTER_NAMES[@]}"
 
 # Init Network Playground
 # doforall liqo-dev-networkplayground "${CLUSTER_NAMES[@]}"

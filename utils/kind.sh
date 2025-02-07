@@ -70,7 +70,7 @@ function install_loadbalancer() {
   docker_net="kind"
   index="$2"
   CNI=$3
-  subIp=$(docker network inspect "${docker_net}" | jq ".[0].IPAM.Config" | jq ".[0].Subnet" | cut -d . -f 2)
+  subIp=$(docker network inspect "${docker_net}" | jq ".[0].IPAM.Config" | jq ".[1].Subnet" | cut -d . -f 2)
   
   echo "Setting LoadBalancer pool 172.${subIp}.${index}.200-172.${subIp}.${index}.250"
   if [ "${CNI}" == "cilium-no-kubeproxy" ]; then
@@ -146,7 +146,7 @@ function install_cni() {
   index=$2
   CNI=$3
   POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
-  POD_CIDR="10.102.0.0/16"
+  POD_CIDR="10.71.0.0/18"
 
   if [ "${CNI}" == cilium ] || [ "${CNI}" == "cilium-no-kubeproxy" ]; then
     kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_gatewayclasses.yaml
@@ -157,7 +157,7 @@ function install_cni() {
     kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml
     
     if [ "${CNI}" == "cilium" ]; then
-      cilium install --values "$DIRPATH/../../utils/cilium-values.yaml"
+      cilium install --wait --values "$DIRPATH/../../utils/cilium-values.yaml"
     fi
 
     if [ "${CNI}" == "cilium-no-kubeproxy" ]; then
@@ -210,7 +210,7 @@ function liqoctl_install_kind() {
   done
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=694b96a7a03963d8d702a689842904ad5f2339e8    
+  current_version=a8280b794d67e8954c97b9cf72bd3a2a3ecbdab4  
 
   echo "${override_flags[@]}"
 
@@ -270,7 +270,7 @@ function kind-create-cluster() {
   index=$2
   CNI=$3
   POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
-  POD_CIDR="10.102.0.0/16"
+  POD_CIDR="10.71.0.0/18"
   SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL"|sed "s/X/${index}/g")
   #SERVICE_CIDR=10.103.0.0/16
 
@@ -315,11 +315,11 @@ networking:
   disableDefaultCNI: ${DISABLEDEFAULTCNI}
 nodes:
   - role: control-plane
-    image: kindest/node:v1.30.0
+    image: kindest/node:v1.32.1
   - role: worker
-    image: kindest/node:v1.30.0
+    image: kindest/node:v1.32.1
   - role: worker
-    image: kindest/node:v1.30.0
+    image: kindest/node:v1.32.1
 containerdConfigPatches:
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
