@@ -188,9 +188,9 @@ function liqoctl_install_kind() {
   index="$2"
 
   monitorEnabled="false"
-  #if [ "${index}" == "1" ]; then
-  #    monitorEnabled="true"
-  #fi
+  if [ "${index}" == "1" ]; then
+      monitorEnabled="true"
+  fi
 
   override_components=(
     #"controllerManager"
@@ -210,7 +210,7 @@ function liqoctl_install_kind() {
   done
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=a8280b794d67e8954c97b9cf72bd3a2a3ecbdab4  
+  current_version=09b5e042e84b52cd58e85ee481b39dcac6c42812    
 
   echo "${override_flags[@]}"
 
@@ -264,6 +264,49 @@ function kyverno_install_kind() {
   helm install kyverno kyverno/kyverno -n kyverno --create-namespace --wait
 }
 
+function certmanager_install_kind() {
+  cluster_name="$1"
+  export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
+  kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.3/cert-manager.yaml
+}
+
+function mcsapi_install_kind() {
+  cluster_name="$1"
+  export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
+  kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/mcs-api/v0.1.0/config/crd/multicluster.x-k8s.io_serviceexports.yaml
+  kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/mcs-api/v0.1.0/config/crd/multicluster.x-k8s.io_serviceimports.yaml
+}
+
+function corednsmcs_build() {
+  coredns_image="localhost:5001/multicluster/coredns:latest"
+  coredns_path="${HOME}/Documents/coredns"
+  
+  pushd "${coredns_path}" || exit
+  
+  if ! grep -q -F 'multicluster:github.com/coredns/multicluster' "plugin.cfg"; then
+    sed -i -e 's/^kubernetes:kubernetes$/&\nmulticluster:github.com\/coredns\/multicluster/' "plugin.cfg"
+  fi
+
+  make
+  docker build -t "${coredns_image}" .
+  docker push "${coredns_image}"
+
+  popd || exit
+}
+
+function corednsmcs_setup_kind(){
+  cluster_name="$1"
+  export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
+
+  COREDNS_RBAC_PATCHFILE="${DIRPATH}/../../utils/coredns-rbac.json"
+
+  kubectl patch clusterrole system:coredns --type json --patch-file "${COREDNS_RBAC_PATCHFILE}"
+  kubectl get configmap -n kube-system coredns -o yaml | \
+    sed -E -e 's/^(\s*)kubernetes.*cluster\.local.*$/\1multicluster clusterset.local\n&/' | \
+    kubectl replace -f-
+  kubectl rollout restart deploy -n kube-system coredns
+}
+
 function kind-create-cluster() {
   #export KIND_EXPERIMENTAL_DOCKER_NETWORK=kind-liqo-${cluster_name}
   cluster_name=$1
@@ -308,6 +351,12 @@ function kind-create-cluster() {
   cat <<EOF >"liqo-${cluster_name}-config.yaml"
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
+kubeadmConfigPatches:
+  - |
+    kind: ClusterConfiguration
+    dns:
+      imageRepository: localhost:5001/multicluster
+      imageTag: latest
 networking:
   serviceSubnet: "${SERVICE_CIDR}"
   podSubnet: "${POD_CIDR}"

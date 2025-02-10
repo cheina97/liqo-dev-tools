@@ -60,12 +60,15 @@ done
 # Delete all old clusters
 doforall kind-delete-cluster "${CLUSTER_NAMES[@]}"
 
+# create registry container unless it already exists
+kind-registry
+
+# Rebuild coredns image and push it to the registry
+corednsmcs_build
+
 # Create clusters
 doforall_asyncandwait_withargandindex kind-create-cluster "${CNI}" "${CLUSTER_NAMES[@]}"
 # doforall_withargandindex kind-create-cluster "${CNI}" "${CLUSTER_NAMES[@]}"
-
-# create registry container unless it already exists
-kind-registry
 
 # Create kubeconfig
 doforall kind-get-kubeconfig "${CLUSTER_NAMES[@]}"
@@ -86,7 +89,7 @@ doforall_asyncandwait install_ingress "${CLUSTER_NAMES[@]}"
 # doforall_asyncandwait metrics-server_install_kind "${CLUSTER_NAMES[@]}"
 
 # Install kube-prometheus
-# doforall_asyncandwait prometheus_install_kind "${CLUSTER_NAMES[0]}"
+doforall_asyncandwait prometheus_install_kind "${CLUSTER_NAMES[0]}"
 
 # Install ArgoCD
 # doforall_asyncandwait install_argocd "${CLUSTER_NAMES[@]}"
@@ -102,6 +105,12 @@ doforall_asyncandwait install_ingress "${CLUSTER_NAMES[@]}"
 
 # Install liqo
 doforall_asyncandwait_withindex liqoctl_install_kind "${CLUSTER_NAMES[@]}"
+
+# Install mcs CRDs
+doforall_asyncandwait mcsapi_install_kind "${CLUSTER_NAMES[@]}"
+
+# Setup coredns multicluster
+doforall_asyncandwait corednsmcs_setup_kind "${CLUSTER_NAMES[@]}"
 
 if [ "${BUILD}" == "true" ]; then
   liqo-dev-deploy
