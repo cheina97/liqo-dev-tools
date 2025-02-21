@@ -146,7 +146,7 @@ function install_cni() {
   index=$2
   CNI=$3
   POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
-  POD_CIDR="10.71.0.0/18"
+  POD_CIDR="10.71.0.0/16"
 
   if [ "${CNI}" == cilium ] || [ "${CNI}" == "cilium-no-kubeproxy" ]; then
     kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_gatewayclasses.yaml
@@ -188,9 +188,9 @@ function liqoctl_install_kind() {
   index="$2"
 
   monitorEnabled="false"
-  if [ "${index}" == "1" ]; then
-      monitorEnabled="true"
-  fi
+  #if [ "${index}" == "1" ]; then
+  #    monitorEnabled="true"
+  #fi
 
   override_components=(
     #"controllerManager"
@@ -210,7 +210,7 @@ function liqoctl_install_kind() {
   done
 
   current_version=$(curl -s https://api.github.com/repos/liqotech/liqo/commits/master |jq .sha|tr -d \")
-  current_version=09b5e042e84b52cd58e85ee481b39dcac6c42812    
+  current_version=5284147946421119c24adf70a5c0b1605e6fa749    
 
   echo "${override_flags[@]}"
 
@@ -313,7 +313,7 @@ function kind-create-cluster() {
   index=$2
   CNI=$3
   POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
-  POD_CIDR="10.71.0.0/18"
+  POD_CIDR="10.71.0.0/16"
   SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL"|sed "s/X/${index}/g")
   #SERVICE_CIDR=10.103.0.0/16
 
@@ -364,11 +364,11 @@ networking:
   disableDefaultCNI: ${DISABLEDEFAULTCNI}
 nodes:
   - role: control-plane
-    image: kindest/node:v1.32.1
+    image: kindest/node:v1.29.0
   - role: worker
-    image: kindest/node:v1.32.1
+    image: kindest/node:v1.29.0
   - role: worker
-    image: kindest/node:v1.32.1
+    image: kindest/node:v1.29.0
 containerdConfigPatches:
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
