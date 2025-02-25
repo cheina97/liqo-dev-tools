@@ -150,7 +150,7 @@ function install_cni() {
   index=$2
   CNI=$3
   POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
-  POD_CIDR="10.71.0.0/18"
+  POD_CIDR="10.127.64.0/18"
 
   if [ "${CNI}" == cilium ] || [ "${CNI}" == "cilium-no-kubeproxy" ]; then
     kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_gatewayclasses.yaml
@@ -197,9 +197,9 @@ function liqoctl_install_kind() {
   current_version="$3"
 
   monitorEnabled="false"
-  if [ "${index}" == "1" ]; then
-      monitorEnabled="true"
-  fi
+  #if [ "${index}" == "1" ]; then
+  #    monitorEnabled="true"
+  #fi
 
   override_components=(
     #"controllerManager"
@@ -232,7 +232,6 @@ function liqoctl_install_kind() {
     --set "metrics.prometheusOperator.enabled=${monitorEnabled}" \
     --set ipam.internal.graphviz=true \
     --set "ipam.reservedSubnets={172.17.0.0/16}" \
-    --set "ipam.pools={30.88.128.0/18}" \
     "${override_flags[@]}"
 
   #--set networking.gatewayTemplates.wireguard.implementation=userspace \
@@ -315,12 +314,17 @@ function corednsmcs_setup_kind(){
 }
 
 function kind-create-cluster() {
-  #export KIND_EXPERIMENTAL_DOCKER_NETWORK=kind-liqo-${cluster_name}
   cluster_name=$1
+  #export KIND_EXPERIMENTAL_DOCKER_NETWORK=${cluster_name}
+  #if [ -z "$(docker network ls | grep $KIND_EXPERIMENTAL_DOCKER_NETWORK)" ]; then
+  #  echo "Creating network $KIND_EXPERIMENTAL_DOCKER_NETWORK"
+  #  docker network create  --opt com.docker.network.bridge.name="$KIND_EXPERIMENTAL_DOCKER_NETWORK" "$KIND_EXPERIMENTAL_DOCKER_NETWORK"
+  #fi
+  
   index=$2
   CNI=$3
   POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
-  POD_CIDR="10.71.0.0/18"
+  POD_CIDR="10.127.64.0/18"
   SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL"|sed "s/X/${index}/g")
   #SERVICE_CIDR=10.103.0.0/16
 

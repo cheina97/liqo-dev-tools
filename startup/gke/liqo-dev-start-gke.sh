@@ -24,14 +24,13 @@ GKE_CLUSTER_ID_PROV2="provider2"
 GKE_CLUSTER_REGION_PROV2="europe-west3"
 GKE_CLUSTER_ZONE_PROV2="europe-west3-a"
 
-
 # General
 NUM_NODES="1"
 MACHINE_TYPE="e2-standard-2" # "e2-micro", "e2-small", "e2-medium", "e2-standard-2", "e2-standard-4"
 IMAGE_TYPE="COS_CONTAINERD" # "COS_CONTAINERD", "UBUNTU_CONTAINERD"
 DISK_TYPE="pd-balanced"
 DISK_SIZE="10"
-DATAPLANE="v2" # "v1", "v2"
+DATAPLANE="v1" # "v1", "v2"
 #####################
 
 
@@ -45,7 +44,7 @@ function gke_create_cluster() {
     local disk_type=$7
     local disk_size=$8
 
-    local cluster_version=" 1.30.3-gke.1639000"
+    local cluster_version=" 1.30"
 
     if [[ $DATAPLANE == "v2" ]]; then
         arg_dataplane="--enable-dataplane-v2"
@@ -57,7 +56,7 @@ function gke_create_cluster() {
         --release-channel "regular" --no-enable-basic-auth --metadata disable-legacy-endpoints=true \
         --network "projects/$GKE_PROJECT_ID/global/networks/default" --subnetwork "projects/$GKE_PROJECT_ID/regions/$cluster_region/subnetworks/default" \
         --default-max-pods-per-node "110" --security-posture=standard --workload-vulnerability-scanning=disabled --no-enable-master-authorized-networks \
-        --enable-autorepair --max-surge-upgrade 1 --max-unavailable-upgrade 0 --binauthz-evaluation-mode=DISABLED \
+        --enable-autorepair --max-surge-upgrade 1 --max-unavailable-upgrade 0 --binauthz-evaluation-mode=DISABLED --no-enable-insecure-kubelet-readonly-port \
         --addons HorizontalPodAutoscaling,HttpLoadBalancing,GcePersistentDiskCsiDriver \
         --no-enable-managed-prometheus
         # --scopes "https://www.googleapis.com/auth/devstorage.read_only","https://www.googleapis.com/auth/logging.write","https://www.googleapis.com/auth/monitoring","https://www.googleapis.com/auth/servicecontrol","https://www.googleapis.com/auth/service.management.readonly","https://www.googleapis.com/auth/trace.append" \
@@ -125,8 +124,8 @@ if [[ $CREATE_CLUSTERS == true ]]; then
     PIDS+=($!) 
     gke_create_cluster ${GKE_CLUSTER_ID_PROV1} ${GKE_CLUSTER_REGION_PROV1} ${GKE_CLUSTER_ZONE_PROV1} ${NUM_NODES} ${MACHINE_TYPE} ${IMAGE_TYPE} ${DISK_TYPE} ${DISK_SIZE} &
     PIDS+=($!)
-    #gke_create_cluster ${GKE_CLUSTER_ID_PROV2} ${GKE_CLUSTER_REGION_PROV2} ${GKE_CLUSTER_ZONE_PROV2} ${NUM_NODES} ${MACHINE_TYPE} ${IMAGE_TYPE} ${DISK_TYPE} ${DISK_SIZE} &
-    #PIDS+=($!)
+    gke_create_cluster ${GKE_CLUSTER_ID_PROV2} ${GKE_CLUSTER_REGION_PROV2} ${GKE_CLUSTER_ZONE_PROV2} ${NUM_NODES} ${MACHINE_TYPE} ${IMAGE_TYPE} ${DISK_TYPE} ${DISK_SIZE} &
+    PIDS+=($!)
     for PID in "${PIDS[@]}"; do
         wait "$PID"
     done
@@ -139,10 +138,10 @@ if [[ $INSTALL_KYVERNO == true ]]; then
     PIDS=()
     install_kyverno $GKE_CLUSTER_ID_CONS &
     PIDS+=($!)
-    #install_kyverno $GKE_CLUSTER_ID_PROV1 &
-    #PIDS+=($!)
-    #install_kyverno $GKE_CLUSTER_ID_PROV2 &
-    #PIDS+=($!)
+    install_kyverno $GKE_CLUSTER_ID_PROV1 &
+    PIDS+=($!)
+    install_kyverno $GKE_CLUSTER_ID_PROV2 &
+    PIDS+=($!)
     for PID in "${PIDS[@]}"; do
         wait "$PID"
     done
@@ -150,7 +149,7 @@ fi
 
 
 # Install Liqo
-VERSION=d59fcc805e3dec82f0dbac7367bb1e0604f3c61d    # v0.10.3
+VERSION=6a04828e3b4b617de126df423c9f00cfe6fbe695
 CHART="${HOME}/Documents/liqo/liqo/deployments/liqo"       # ""
 if [[ $INSTALL_LIQO == true ]]; then
     PIDS=()
@@ -158,8 +157,8 @@ if [[ $INSTALL_LIQO == true ]]; then
     PIDS+=($!)
     install_liqo $GKE_CLUSTER_ID_PROV1 $GKE_CLUSTER_ZONE_PROV1 $VERSION $CHART &
     PIDS+=($!)
-    #install_liqo $GKE_CLUSTER_ID_PROV2 $GKE_CLUSTER_ZONE_PROV2 $VERSION $CHART &
-    #PIDS+=($!)
+    install_liqo $GKE_CLUSTER_ID_PROV2 $GKE_CLUSTER_ZONE_PROV2 $VERSION $CHART &
+    PIDS+=($!)
     for PID in "${PIDS[@]}"; do
         wait "$PID"
     done
@@ -173,8 +172,8 @@ if [[ $DESTROY == true ]]; then
     PIDS+=($!)
     gcloud container clusters delete $GKE_CLUSTER_ID_PROV1 --zone $GKE_CLUSTER_ZONE_PROV1 --project $GKE_PROJECT_ID --quiet &
     PIDS+=($!)
-    #gcloud container clusters delete $GKE_CLUSTER_ID_PROV2 --zone $GKE_CLUSTER_ZONE_PROV2 --project $GKE_PROJECT_ID --quiet &
-    #PIDS+=($!)
+    gcloud container clusters delete $GKE_CLUSTER_ID_PROV2 --zone $GKE_CLUSTER_ZONE_PROV2 --project $GKE_PROJECT_ID --quiet &
+    PIDS+=($!)
     for PID in "${PIDS[@]}"; do
         wait "$PID"
     done
