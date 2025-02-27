@@ -107,7 +107,6 @@ function install_liqo() {
         --zone $GKE_CLUSTER_ZONE \
         --credentials-path $GKE_SERVICE_ACCOUNT_PATH \
         --version $VERSION $arg_chart \
-        --set auth.service.type=NodePort \
         --disable-telemetry --verbose
         # --set "ipam.reservedSubnets={10.156.0.0/16}" \
     
@@ -124,8 +123,8 @@ if [[ $CREATE_CLUSTERS == true ]]; then
     PIDS+=($!) 
     gke_create_cluster ${GKE_CLUSTER_ID_PROV1} ${GKE_CLUSTER_REGION_PROV1} ${GKE_CLUSTER_ZONE_PROV1} ${NUM_NODES} ${MACHINE_TYPE} ${IMAGE_TYPE} ${DISK_TYPE} ${DISK_SIZE} &
     PIDS+=($!)
-    gke_create_cluster ${GKE_CLUSTER_ID_PROV2} ${GKE_CLUSTER_REGION_PROV2} ${GKE_CLUSTER_ZONE_PROV2} ${NUM_NODES} ${MACHINE_TYPE} ${IMAGE_TYPE} ${DISK_TYPE} ${DISK_SIZE} &
-    PIDS+=($!)
+    #gke_create_cluster ${GKE_CLUSTER_ID_PROV2} ${GKE_CLUSTER_REGION_PROV2} ${GKE_CLUSTER_ZONE_PROV2} ${NUM_NODES} ${MACHINE_TYPE} ${IMAGE_TYPE} ${DISK_TYPE} ${DISK_SIZE} &
+    #PIDS+=($!)
     for PID in "${PIDS[@]}"; do
         wait "$PID"
     done
@@ -140,8 +139,8 @@ if [[ $INSTALL_KYVERNO == true ]]; then
     PIDS+=($!)
     install_kyverno $GKE_CLUSTER_ID_PROV1 &
     PIDS+=($!)
-    install_kyverno $GKE_CLUSTER_ID_PROV2 &
-    PIDS+=($!)
+    #install_kyverno $GKE_CLUSTER_ID_PROV2 &
+    #PIDS+=($!)
     for PID in "${PIDS[@]}"; do
         wait "$PID"
     done
@@ -149,7 +148,7 @@ fi
 
 
 # Install Liqo
-VERSION=6a04828e3b4b617de126df423c9f00cfe6fbe695
+VERSION=ec54e6f7f04dbd41ec1b67adbf114200efbb36ed
 CHART="${HOME}/Documents/liqo/liqo/deployments/liqo"       # ""
 if [[ $INSTALL_LIQO == true ]]; then
     PIDS=()
@@ -157,8 +156,8 @@ if [[ $INSTALL_LIQO == true ]]; then
     PIDS+=($!)
     install_liqo $GKE_CLUSTER_ID_PROV1 $GKE_CLUSTER_ZONE_PROV1 $VERSION $CHART &
     PIDS+=($!)
-    install_liqo $GKE_CLUSTER_ID_PROV2 $GKE_CLUSTER_ZONE_PROV2 $VERSION $CHART &
-    PIDS+=($!)
+    #install_liqo $GKE_CLUSTER_ID_PROV2 $GKE_CLUSTER_ZONE_PROV2 $VERSION $CHART &
+    #PIDS+=($!)
     for PID in "${PIDS[@]}"; do
         wait "$PID"
     done
@@ -172,8 +171,8 @@ if [[ $DESTROY == true ]]; then
     PIDS+=($!)
     gcloud container clusters delete $GKE_CLUSTER_ID_PROV1 --zone $GKE_CLUSTER_ZONE_PROV1 --project $GKE_PROJECT_ID --quiet &
     PIDS+=($!)
-    gcloud container clusters delete $GKE_CLUSTER_ID_PROV2 --zone $GKE_CLUSTER_ZONE_PROV2 --project $GKE_PROJECT_ID --quiet &
-    PIDS+=($!)
+    #gcloud container clusters delete $GKE_CLUSTER_ID_PROV2 --zone $GKE_CLUSTER_ZONE_PROV2 --project $GKE_PROJECT_ID --quiet &
+    #PIDS+=($!)
     for PID in "${PIDS[@]}"; do
         wait "$PID"
     done
