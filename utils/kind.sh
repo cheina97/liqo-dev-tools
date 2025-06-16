@@ -75,6 +75,7 @@ function install_loadbalancer() {
   index="$2"
   CNI=$3
   subIp=$(docker network inspect "${docker_net}" | jq ".[0].IPAM.Config" | jq ".[1].Subnet" | cut -d . -f 2)
+  subIp=18
   
   echo "Setting LoadBalancer pool 172.${subIp}.${index}.200-172.${subIp}.${index}.250"
   if [ "${CNI}" == "cilium-no-kubeproxy" ]; then
@@ -232,6 +233,7 @@ function liqoctl_install_kind() {
     --set "metrics.prometheusOperator.enabled=${monitorEnabled}" \
     --set ipam.internal.graphviz=true \
     --set "ipam.reservedSubnets={172.17.0.0/16}" \
+    --set "networking.gatewayTemplates.wireguard.implementation=userspace" \
     "${override_flags[@]}"
 
   #--set networking.gatewayTemplates.wireguard.implementation=userspace \

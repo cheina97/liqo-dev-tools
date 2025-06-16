@@ -2,8 +2,8 @@
 
 CREATE_CLUSTERS=false
 INSTALL_KYVERNO=false
-INSTALL_LIQO=false
-DESTROY=true
+INSTALL_LIQO=true
+DESTROY=false
 
 ##### Variables #####
 export GKE_SERVICE_ACCOUNT_PATH="$HOME/.liqo/gcp_service_account"
@@ -134,7 +134,7 @@ fi
 # Install Kyverno
 if [[ $INSTALL_KYVERNO == true ]]; then
     helm repo add kyverno https://kyverno.github.io/kyverno/ && helm repo update
-    PIDS=()
+    PIDS=() 
     install_kyverno $GKE_CLUSTER_ID_CONS &
     PIDS+=($!)
     install_kyverno $GKE_CLUSTER_ID_PROV1 &
@@ -148,8 +148,8 @@ fi
 
 
 # Install Liqo
-VERSION=ec54e6f7f04dbd41ec1b67adbf114200efbb36ed
-CHART="${HOME}/Documents/liqo/liqo/deployments/liqo"       # ""
+VERSION=80cba3e8c8751af365e4f902fbc96446b87b9b9f
+CHART="${HOME}/Documents/liqo/liqo/deployments/liqo"
 if [[ $INSTALL_LIQO == true ]]; then
     PIDS=()
     install_liqo $GKE_CLUSTER_ID_CONS $GKE_CLUSTER_ZONE_CONS $VERSION $CHART &
