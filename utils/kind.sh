@@ -76,7 +76,7 @@ function install_loadbalancer() {
   CNI=$3
   subIp=$(docker network inspect "${docker_net}" | jq ".[0].IPAM.Config" | jq ".[1].Subnet" | cut -d . -f 2)
   subIp=18
-  
+
   echo "Setting LoadBalancer pool 172.${subIp}.${index}.200-172.${subIp}.${index}.250"
   if [ "${CNI}" == "cilium-no-kubeproxy" ]; then
     until kubectl get crd ciliumloadbalancerippools.cilium.io ciliuml2announcementpolicies.cilium.io 2>/dev/null; do
@@ -84,11 +84,11 @@ function install_loadbalancer() {
     done
     export subIp
     export index
-    envsubst < "$DIRPATH/../../utils/cilium-lb.yaml" | kubectl apply -f -
+    envsubst <"$DIRPATH/../../utils/cilium-lb.yaml" | kubectl apply -f -
   else
     kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
     until kubectl wait --namespace metallb-system --for=condition=ready pod --selector=app=metallb --timeout=90s 2>/dev/null; do
-      sleep 1s  
+      sleep 1s
     done
     cat <<EOF | kubectl apply -f -
 apiVersion: metallb.io/v1beta1
@@ -110,27 +110,28 @@ EOF
 
 }
 
-function install_ingress(){
+function install_ingress() {
   cluster_name="$1"
   export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
   helm upgrade --install ingress-nginx ingress-nginx \
-  --repo https://kubernetes.github.io/ingress-nginx \
-  --namespace ingress-nginx --create-namespace \
-  --set controller.ingressClassResource.default=true
+    --repo https://kubernetes.github.io/ingress-nginx \
+    --namespace ingress-nginx --create-namespace \
+    --set controller.ingressClassResource.default=true
 }
 
-function install_argocd(){
+function install_argocd() {
   cluster_name="$1"
   export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
   kubectl create namespace argocd
   kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-  tput setaf 5; tput bold; 
+  tput setaf 5
+  tput bold
   echo "Get ArgoCD initial password for ${cluster_name} width:"
   echo 'kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d && echo'
   tput sgr0
 }
 
-function install_kubevirt(){
+function install_kubevirt() {
   cluster_name="$1"
   export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
 
@@ -139,10 +140,10 @@ function install_kubevirt(){
   kubectl create -f "https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-operator.yaml"
   kubectl create -f "https://github.com/kubevirt/kubevirt/releases/download/${KUBEVIRT_VERSION}/kubevirt-cr.yaml"
 
-local CDI_VERSION
-CDI_VERSION=$(curl -s https://api.github.com/repos/kubevirt/containerized-data-importer/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-kubectl create -f "https://github.com/kubevirt/containerized-data-importer/releases/download/${CDI_VERSION}/cdi-operator.yaml"
-kubectl create -f "https://github.com/kubevirt/containerized-data-importer/releases/download/${CDI_VERSION}/cdi-cr.yaml"
+  local CDI_VERSION
+  CDI_VERSION=$(curl -s https://api.github.com/repos/kubevirt/containerized-data-importer/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+  kubectl create -f "https://github.com/kubevirt/containerized-data-importer/releases/download/${CDI_VERSION}/cdi-operator.yaml"
+  kubectl create -f "https://github.com/kubevirt/containerized-data-importer/releases/download/${CDI_VERSION}/cdi-cr.yaml"
 }
 
 function install_cni() {
@@ -150,7 +151,7 @@ function install_cni() {
   export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
   index=$2
   CNI=$3
-  POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
+  POD_CIDR=$(echo "$POD_CIDR_TMPL" | sed "s/X/${index}/g")
   POD_CIDR="10.127.64.0/18"
 
   if [ "${CNI}" == cilium ] || [ "${CNI}" == "cilium-no-kubeproxy" ]; then
@@ -160,7 +161,7 @@ function install_cni() {
     kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_referencegrants.yaml
     kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/experimental/gateway.networking.k8s.io_grpcroutes.yaml
     kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml
-    
+
     if [ "${CNI}" == "cilium" ]; then
       cilium install --wait --values "$DIRPATH/../../utils/cilium-values.yaml"
     fi
@@ -176,7 +177,7 @@ function install_cni() {
   elif [ "${CNI}" == calico ]; then
     kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml
     export POD_CIDR
-    envsubst < "$DIRPATH/../../utils/calico.yaml" | kubectl apply -f -
+    envsubst <"$DIRPATH/../../utils/calico.yaml" | kubectl apply -f -
   elif [ "${CNI}" == flannel ]; then
     # Needs manual creation of namespace to avoid helm error
     kubectl create ns kube-flannel
@@ -237,7 +238,7 @@ function liqoctl_install_kind() {
     "${override_flags[@]}"
 
   #--set networking.gatewayTemplates.wireguard.implementation=userspace \
-    
+
   #--set controllerManager.config.enableNodeFailureController=true \
   #--set gateway.service.type=LoadBalancer \
   #--set auth.service.type=LoadBalancer
@@ -288,9 +289,9 @@ function mcsapi_install_kind() {
 function corednsmcs_build() {
   coredns_image="localhost:5001/multicluster/coredns:latest"
   coredns_path="${HOME}/Documents/coredns"
-  
+
   pushd "${coredns_path}" || exit
-  
+
   if ! grep -q -F 'multicluster:github.com/coredns/multicluster' "plugin.cfg"; then
     sed -i -e 's/^kubernetes:kubernetes$/&\nmulticluster:github.com\/coredns\/multicluster/' "plugin.cfg"
   fi
@@ -302,15 +303,15 @@ function corednsmcs_build() {
   popd || exit
 }
 
-function corednsmcs_setup_kind(){
+function corednsmcs_setup_kind() {
   cluster_name="$1"
   export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
 
   COREDNS_RBAC_PATCHFILE="${DIRPATH}/../../utils/coredns-rbac.json"
 
   kubectl patch clusterrole system:coredns --type json --patch-file "${COREDNS_RBAC_PATCHFILE}"
-  kubectl get configmap -n kube-system coredns -o yaml | \
-    sed -E -e 's/^(\s*)kubernetes.*cluster\.local.*$/\1multicluster clusterset.local\n&/' | \
+  kubectl get configmap -n kube-system coredns -o yaml |
+    sed -E -e 's/^(\s*)kubernetes.*cluster\.local.*$/\1multicluster clusterset.local\n&/' |
     kubectl replace -f-
   kubectl rollout restart deploy -n kube-system coredns
 }
@@ -322,12 +323,12 @@ function kind-create-cluster() {
   #  echo "Creating network $KIND_EXPERIMENTAL_DOCKER_NETWORK"
   #  docker network create  --opt com.docker.network.bridge.name="$KIND_EXPERIMENTAL_DOCKER_NETWORK" "$KIND_EXPERIMENTAL_DOCKER_NETWORK"
   #fi
-  
+
   index=$2
   CNI=$3
-  POD_CIDR=$(echo "$POD_CIDR_TMPL"|sed "s/X/${index}/g")
+  POD_CIDR=$(echo "$POD_CIDR_TMPL" | sed "s/X/${index}/g")
   POD_CIDR="10.127.64.0/18"
-  SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL"|sed "s/X/${index}/g")
+  SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL" | sed "s/X/${index}/g")
   #SERVICE_CIDR=10.103.0.0/16
 
   DISABLEDEFAULTCNI="false"
@@ -339,27 +340,27 @@ function kind-create-cluster() {
   if [ "$CNI" == "cilium-no-kubeproxy" ]; then
     KUBEPROXYMODE="none"
   fi
-  
-# Adds the following to the kind config to run flannel:
-#nodes:
-#  - role: control-plane
-#    image: kindest/node:v1.30.0
-#    extraMounts:
-#      - hostPath: /opt/cni/bin
-#        containerPath: /opt/cni/bin
-#  - role: worker
-#    image: kindest/node:v1.30.0
-#    extraMounts:
-#      - hostPath: /opt/cni/bin
-#        containerPath: /opt/cni/bin
-#  - role: worker
-#    image: kindest/node:v1.30.0
-#    extraMounts:
-#      - hostPath: /opt/cni/bin
-#        containerPath: /opt/cni/bin
 
-# Adds the following to the kind config to disable kube-proxy:
-#kubeProxyMode: "none"
+  # Adds the following to the kind config to run flannel:
+  #nodes:
+  #  - role: control-plane
+  #    image: kindest/node:v1.30.0
+  #    extraMounts:
+  #      - hostPath: /opt/cni/bin
+  #        containerPath: /opt/cni/bin
+  #  - role: worker
+  #    image: kindest/node:v1.30.0
+  #    extraMounts:
+  #      - hostPath: /opt/cni/bin
+  #        containerPath: /opt/cni/bin
+  #  - role: worker
+  #    image: kindest/node:v1.30.0
+  #    extraMounts:
+  #      - hostPath: /opt/cni/bin
+  #        containerPath: /opt/cni/bin
+
+  # Adds the following to the kind config to disable kube-proxy:
+  #kubeProxyMode: "none"
 
   cat <<EOF >"liqo-${cluster_name}-config.yaml"
 kind: Cluster

@@ -1,0 +1,27 @@
+apiVersion: networking.liqo.io/v1beta1
+kind: RouteConfiguration
+metadata:
+  labels:
+    liqo.io/managed: "true"
+    networking.liqo.io/route-category: gateway
+    networking.liqo.io/route-subcategory: fabric
+  name: cheina-cluster1-control-plane-gw-node
+  namespace: liqo
+spec:
+  table:
+    name: cheina-cluster1-control-plane
+    rules:
+      - dst: 10.80.0.2/32
+        routes:
+          - dev: liqo.jdr5xndgmb
+            dst: 10.80.0.2/32
+            scope: link
+      - iif: liqo-tunnel
+        routes:
+          - dst: 10.112.0.229/32
+            gw: 10.80.0.2
+            targetRef:
+              kind: Pod
+              name: coredns-9ff4c5cf6-xbx5w
+              namespace: kube-system
+              uid: 3cb83b91-98b5-412c-b5a2-f1ebe28497df
