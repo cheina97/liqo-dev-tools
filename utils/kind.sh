@@ -152,7 +152,7 @@ function install_cni() {
   index=$2
   CNI=$3
   POD_CIDR=$(echo "$POD_CIDR_TMPL" | sed "s/X/${index}/g")
-  POD_CIDR="10.127.64.0/18"
+  #POD_CIDR="10.127.64.0/18"
 
   if [ "${CNI}" == cilium ] || [ "${CNI}" == "cilium-no-kubeproxy" ]; then
     kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_gatewayclasses.yaml
@@ -229,7 +229,7 @@ function liqoctl_install_kind() {
     --local-chart-path "$HOME/Documents/liqo/liqo/deployments/liqo" \
     --version "${current_version}" \
     --set networking.fabric.config.fullMasquerade=false \
-    --set networking.fabric.config.gatewayMasqueradeBypass=false \
+    --set networking.fabric.config.gatewayMasqueradeBypass=true \
     --set metrics.enabled=true \
     --set "metrics.prometheusOperator.enabled=${monitorEnabled}" \
     --set ipam.internal.graphviz=true \
@@ -327,7 +327,7 @@ function kind-create-cluster() {
   index=$2
   CNI=$3
   POD_CIDR=$(echo "$POD_CIDR_TMPL" | sed "s/X/${index}/g")
-  POD_CIDR="10.127.64.0/18"
+  #POD_CIDR="10.127.64.0/18"
   SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL" | sed "s/X/${index}/g")
   #SERVICE_CIDR=10.103.0.0/16
 
@@ -362,15 +362,16 @@ function kind-create-cluster() {
   # Adds the following to the kind config to disable kube-proxy:
   #kubeProxyMode: "none"
 
+  #kubeadmConfigPatches:
+  #- |
+  #  kind: ClusterConfiguration
+  #  dns:
+  #    imageRepository: localhost:5001/multicluster
+  #    imageTag: latest
+
   cat <<EOF >"liqo-${cluster_name}-config.yaml"
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
-kubeadmConfigPatches:
-  - |
-    kind: ClusterConfiguration
-    dns:
-      imageRepository: localhost:5001/multicluster
-      imageTag: latest
 networking:
   serviceSubnet: "${SERVICE_CIDR}"
   podSubnet: "${POD_CIDR}"
@@ -378,11 +379,7 @@ networking:
   disableDefaultCNI: ${DISABLEDEFAULTCNI}
 nodes:
   - role: control-plane
-    image: kindest/node:v1.32.1
-  - role: worker
-    image: kindest/node:v1.32.1
-  - role: worker
-    image: kindest/node:v1.32.1
+    image: kindest/node:v1.33.1
 containerdConfigPatches:
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]

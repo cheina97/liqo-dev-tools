@@ -44,7 +44,7 @@ while getopts 'n:bpc:hv:' flag; do
     LIQO_VERSION="$OPTARG"
     echo "LIQO Version: ${LIQO_VERSION}"
     ;;
-  h) 
+  h)
     help
     exit 0
     ;;
@@ -54,7 +54,6 @@ while getopts 'n:bpc:hv:' flag; do
     ;;
   esac
 done
-
 
 if [ -z "${LIQO_VERSION}" ]; then
   echo "LIQO Version is not set. Exiting."
@@ -75,7 +74,7 @@ doforall kind-delete-cluster "${CLUSTER_NAMES[@]}"
 kind-registry
 
 # Rebuild coredns image and push it to the registry
-corednsmcs_build
+#corednsmcs_build
 
 # Create clusters
 doforall_asyncandwait_withargandindex kind-create-cluster "${CNI}" "${CLUSTER_NAMES[@]}"
@@ -110,7 +109,7 @@ doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 # doforall_asyncandwait install_kubevirt "${CLUSTER_NAMES[@]}"
 
 # Install Kyverno
-# doforall_asyncandwait kyverno_install_kind "${CLUSTER_NAMES[@]}"
+doforall_asyncandwait kyverno_install_kind "${CLUSTER_NAMES[@]}"
 
 # Init Network Playground
 # doforall liqo-dev-networkplayground "${CLUSTER_NAMES[@]}"
@@ -119,12 +118,11 @@ doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 doforall_asyncandwait_withargandindex liqoctl_install_kind "${LIQO_VERSION}" "${CLUSTER_NAMES[@]}"
 
 # Install mcs CRDs
-doforall_asyncandwait mcsapi_install_kind "${CLUSTER_NAMES[@]}"
+#doforall_asyncandwait mcsapi_install_kind "${CLUSTER_NAMES[@]}"
 
 # Setup coredns multicluster
-doforall_asyncandwait corednsmcs_setup_kind "${CLUSTER_NAMES[@]}"
+#doforall_asyncandwait corednsmcs_setup_kind "${CLUSTER_NAMES[@]}"
 
 if [ "${BUILD}" == "true" ]; then
   liqo-dev-deploy
 fi
-
