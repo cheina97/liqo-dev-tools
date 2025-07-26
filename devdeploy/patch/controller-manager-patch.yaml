@@ -2,6 +2,5 @@ spec:
   template:
     spec:
       containers:
-      - name: controller-manager
-        image: "${IMAGE}"
-
+        - name: controller-manager
+          image: "liqo-${IMAGE}"

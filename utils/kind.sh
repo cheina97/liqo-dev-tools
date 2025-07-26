@@ -154,13 +154,20 @@ function install_cni() {
   POD_CIDR=$(echo "$POD_CIDR_TMPL" | sed "s/X/${index}/g")
   #POD_CIDR="10.127.64.0/18"
 
+  POD_CIDR=""
+  if [[ "${index}" == "1" ]]; then
+    POD_CIDR="10.101.0.0/16"
+  else
+    POD_CIDR="10.102.0.0/16"
+  fi
+
   if [ "${CNI}" == cilium ] || [ "${CNI}" == "cilium-no-kubeproxy" ]; then
-    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_gatewayclasses.yaml
-    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_gateways.yaml
-    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_httproutes.yaml
-    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_referencegrants.yaml
-    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/experimental/gateway.networking.k8s.io_grpcroutes.yaml
-    kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml
+    #kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_gatewayclasses.yaml
+    #kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_gateways.yaml
+    #kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_httproutes.yaml
+    #kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/standard/gateway.networking.k8s.io_referencegrants.yaml
+    #kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/experimental/gateway.networking.k8s.io_grpcroutes.yaml
+    #kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.0.0/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml
 
     if [ "${CNI}" == "cilium" ]; then
       cilium install --wait --values "$DIRPATH/../../utils/cilium-values.yaml"
@@ -192,6 +199,63 @@ function install_cni() {
   echo "Nodes are ready"
 }
 
+function build_and_set_override_flags() {
+  COMPONENTS=(
+    "controller-manager"
+    "virtual-kubelet"
+    "metric-agent"
+    "gateway"
+    "gateway/wireguard"
+    "gateway/geneve"
+    "ipam"
+    "fabric"
+  )
+
+  tag=$(date +%s)
+  override_flags_ref=()
+  for component in "${COMPONENTS[@]}"; do
+    liqo-dev-deploy -b -t "${tag}" -c "${component}" 1>&2
+    case "${component}" in
+    "controller-manager")
+      override_flags_ref+=("--set-string=controllerManager.image.name=localhost:5001/${component}")
+      override_flags_ref+=("--set-string=controllerManager.image.version=${tag}")
+      ;;
+    "virtual-kubelet")
+      override_flags_ref+=("--set-string=virtualKubelet.image.name=localhost:5001/${component}")
+      override_flags_ref+=("--set-string=virtualKubelet.image.version=${tag}")
+      ;;
+    "metric-agent")
+      override_flags_ref+=("--set-string=metricAgent.image.name=localhost:5001/${component}")
+      override_flags_ref+=("--set-string=metricAgent.image.version=${tag}")
+      ;;
+    "gateway")
+      override_flags_ref+=("--set-string=networking.gatewayTemplates.container.gateway.image.name=localhost:5001/${component}")
+      override_flags_ref+=("--set-string=networking.gatewayTemplates.container.gateway.image.version=${tag}")
+      ;;
+    "gateway/wireguard")
+      override_flags_ref+=("--set-string=networking.gatewayTemplates.container.wireguard.image.name=localhost:5001/${component}")
+      override_flags_ref+=("--set-string=networking.gatewayTemplates.container.wireguard.image.version=${tag}")
+      ;;
+    "gateway/geneve")
+      override_flags_ref+=("--set-string=networking.gatewayTemplates.container.geneve.image.name=localhost:5001/${component}")
+      override_flags_ref+=("--set-string=networking.gatewayTemplates.container.geneve.image.version=${tag}")
+      ;;
+    "ipam")
+      override_flags_ref+=("--set-string=ipam.internal.image.name=localhost:5001/${component}")
+      override_flags_ref+=("--set-string=ipam.internal.image.version=${tag}")
+      ;;
+    "fabric")
+      override_flags_ref+=("--set-string=networking.fabric.image.name=localhost:5001/${component}")
+      override_flags_ref+=("--set-string=networking.fabric.image.version=${tag}")
+      ;;
+    esac
+  done
+
+  for flag in "${override_flags_ref[@]}"; do
+    printf '%s\n' "$flag"
+  done
+}
+
 function liqoctl_install_kind() {
   cluster_name="$1"
   export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
@@ -203,22 +267,17 @@ function liqoctl_install_kind() {
   #    monitorEnabled="true"
   #fi
 
-  override_components=(
-    #"controllerManager"
-    #"fabric"
-  )
-
-  override_flags=()
-  override_tag="1712742742"
-  for component in "${override_components[@]}"; do
-    if [ "${component}" == "controllerManager" ]; then
-      image="localhost:5001/controller-manager"
-    else
-      image="localhost:5001/${component}"
-    fi
-    override_flags+=("--set-string=${component}.image.name=${image}")
-    override_flags+=("--set-string=${component}.image.version=${override_tag}")
-  done
+  if [ "${BUILD}" == "true" ]; then
+    echo "Starting building components"
+    start_time=$(date +%s)
+    override_flags=()
+    while IFS= read -r flag; do
+      override_flags+=("$flag")
+    done < <(build_and_set_override_flags)
+    end_time=$(date +%s)
+    duration=$((end_time - start_time))
+    echo "Finished building components in ${duration} seconds"
+  fi
 
   echo "${override_flags[@]}"
 
@@ -228,11 +287,11 @@ function liqoctl_install_kind() {
     --cluster-labels="cl.liqo.io/name=${cluster_name}" \
     --local-chart-path "$HOME/Documents/liqo/liqo/deployments/liqo" \
     --version "${current_version}" \
-    --set networking.fabric.config.fullMasquerade=false \
+    --set networking.fabric.config.fullMasquerade=true \
     --set networking.fabric.config.gatewayMasqueradeBypass=true \
     --set metrics.enabled=true \
     --set "metrics.prometheusOperator.enabled=${monitorEnabled}" \
-    --set ipam.internal.graphviz=true \
+    --set ipam.internal.graphviz=false \
     --set "ipam.reservedSubnets={172.17.0.0/16}" \
     --set "networking.gatewayTemplates.wireguard.implementation=userspace" \
     "${override_flags[@]}"
@@ -330,6 +389,13 @@ function kind-create-cluster() {
   #POD_CIDR="10.127.64.0/18"
   SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL" | sed "s/X/${index}/g")
   #SERVICE_CIDR=10.103.0.0/16
+
+  POD_CIDR=""
+  if [[ "${index}" == "1" ]]; then
+    POD_CIDR="10.101.0.0/16"
+  else
+    POD_CIDR="10.102.0.0/16"
+  fi
 
   DISABLEDEFAULTCNI="false"
   if [ "$CNI" != "kind" ]; then

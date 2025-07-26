@@ -1,10 +1,12 @@
 affinity:
   nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
         - matchExpressions:
-          - key: liqo.io/type
-            operator: DoesNotExist
+            - key: liqo.io/type
+              operator: DoesNotExist
+hostFirewall:
+  enabled: true
 ingressController:
   enabled: false
   loadbalancerMode: "shared"

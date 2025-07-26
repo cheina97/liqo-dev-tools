@@ -35,6 +35,7 @@ while getopts 'n:bpc:hv:' flag; do
   b)
     BUILD="true"
     echo "Build: ${BUILD}"
+    export BUILD
     ;;
   c)
     CNI="$OPTARG"
@@ -55,7 +56,7 @@ while getopts 'n:bpc:hv:' flag; do
   esac
 done
 
-if [ -z "${LIQO_VERSION}" ]; then
+if [ -z "${LIQO_VERSION}" ] && [ -z "${BUILD}" ]; then
   echo "LIQO Version is not set. Exiting."
   exit 1
 fi
@@ -109,7 +110,7 @@ doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 # doforall_asyncandwait install_kubevirt "${CLUSTER_NAMES[@]}"
 
 # Install Kyverno
-doforall_asyncandwait kyverno_install_kind "${CLUSTER_NAMES[@]}"
+#doforall_asyncandwait kyverno_install_kind "${CLUSTER_NAMES[@]}"
 
 # Init Network Playground
 # doforall liqo-dev-networkplayground "${CLUSTER_NAMES[@]}"
@@ -122,7 +123,3 @@ doforall_asyncandwait_withargandindex liqoctl_install_kind "${LIQO_VERSION}" "${
 
 # Setup coredns multicluster
 #doforall_asyncandwait corednsmcs_setup_kind "${CLUSTER_NAMES[@]}"
-
-if [ "${BUILD}" == "true" ]; then
-  liqo-dev-deploy
-fi

@@ -1,0 +1,35 @@
+addressType: IPv4
+apiVersion: discovery.k8s.io/v1
+endpoints:
+  - addresses:
+      - 10.10.0.222
+    conditions:
+      ready: true
+      serving: true
+      terminating: false
+    nodeName: cheina-cluster2
+    targetRef:
+      kind: Pod
+      name: nginx-5869d7778c-qzpt8
+      namespace: default
+      uid: 9dc4185e-b9c8-4795-880c-0009670bf9ce
+kind: EndpointSlice
+metadata:
+  labels:
+    app: nginx
+    endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+    kubernetes.io/service-name: nginx
+  name: nginx-5869d7778c-qzpt8
+  namespace: liqo-demo
+  ownerReferences:
+    - apiVersion: v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Service
+      name: nginx
+      uid: 9dc4185e-b9c8-4795-880c-0009670bf9ce
+  resourceVersion: "3608"
+ports:
+  - name: ""
+    port: 80
+    protocol: TCP

@@ -4,52 +4,67 @@ FILEPATH=$(realpath "$0")
 PATCHDIRPATH=$(dirname "$FILEPATH")/patch
 
 function help() {
-  echo "Usage: "
-  echo "  liqo-dev-start [-c component] [-b]"
-  echo "Flags:"
-  echo "  -h  - help"
-  echo "  -c  - component to build (values: all,controller-manager,virtual-kubelet,liqonet,metric-agent,gateway,gateway/wireguard)"
-  echo "  -b  - build without deploying"
+    echo "Usage: "
+    echo "  liqo-dev-start [-c component] [-b] [-t tag]"
+    echo "Flags:"
+    echo "  -h  - help"
+    echo "  -c  - component to build (values: all,controller-manager,virtual-kubelet,liqonet,metric-agent,gateway,gateway/wireguard)"
+    echo "  -b  - build only, do not deploy"
+    echo "  -t  - specify tag to use (default: current timestamp)"
 }
 
-DEPLOY=true
-
 COMPONENTS=(
-    #"controller-manager"
-    #"virtual-kubelet"
-    #"liqonet"
-    #"metric-agent"
-    #"gateway"
-    #"gateway/wireguard"
-    #"gateway/geneve"
+    "controller-manager"
+    "virtual-kubelet"
+    "liqonet"
+    "metric-agent"
+    "gateway"
+    "gateway/wireguard"
+    "gateway/geneve"
     "ipam"
-    #"fabric"
+    "fabric"
+)
+ALL_COMPONENTS=(
+    "controller-manager"
+    "virtual-kubelet"
+    "liqonet"
+    "metric-agent"
+    "gateway"
+    "gateway/wireguard"
+    "gateway/geneve"
+    "ipam"
+    "fabric"
 )
 
-# Parse flags
+BUILD_ONLY=false
+TAG="$(date +%s)"
 
-while getopts 'c:bh' flag; do
-  case "$flag" in
-  c)
-    echo "Selected components: ${OPTARG}"
-    IFS="," read -r -a COMPONENTS <<< "${OPTARG}"
-    ;;
-  b)
-    DEPLOY="false"
-    echo "Building without deploying"
-    ;;
-  h) 
-    help
-    exit 0
-    ;;
-  *)
-    help
-    exit 1
-    ;;
-  esac
+# Parse flags
+while getopts 'c:bt:ha' flag; do
+    case "$flag" in
+    c)
+        IFS="," read -r -a COMPONENTS <<<"${OPTARG}"
+        ;;
+    b)
+        BUILD_ONLY=true
+        ;;
+    t)
+        TAG="${OPTARG}"
+        ;;
+    a)
+        COMPONENTS=("${ALL_COMPONENTS[@]}")
+        ;;
+    h)
+        help
+        exit 0
+        ;;
+    *)
+        help
+        exit 1
+        ;;
+    esac
 done
 
-TAG="$(date +%s)"
 LIQO_ROOT="${HOME}/Documents/liqo/liqo"
 #FIXEDLIQONETIMAGE="localhost:5001/liqonet:1687872687"
 #FIXEDVKIMAGE="localhost:5001/virtual-kubelet:1688721308"
@@ -60,106 +75,75 @@ LIQO_ROOT="${HOME}/Documents/liqo/liqo"
 
 echo "Building components: ${COMPONENTS[*]}"
 
+export DOCKER_REGISTRY="localhost:5001"
+export DOCKER_ORGANIZATION="liqotech"
+export DOCKER_TAG="${TAG}"
+export DOCKER_PUSH="true"
+export ARCHS="${ARCHS:-linux/arm64}"
+
+BUILD_CMD="$LIQO_ROOT/build/liqo/build.sh"
+
 for COMPONENT in "${COMPONENTS[@]}"; do
-    tput setaf 3
-    tput bold
-    echo "Component: ${COMPONENT}"
-    tput sgr0
+    pushd "$LIQO_ROOT" || exit
 
-    IMAGE_BASE="localhost:5001/${COMPONENT}"
-    IMAGE="${IMAGE_BASE}:${TAG}"
-    SKIPPUSH=false
-    export IMAGE
+    IMAGE_BASE="${DOCKER_REGISTRY}/${DOCKER_ORGANIZATION}/${COMPONENT}-ci"
+    export IMAGE="${IMAGE_BASE}:${DOCKER_TAG}"
 
-    # Build the image
-    tput setaf 3
-    tput bold
-    echo "Building ${IMAGE}"
-    tput sgr0
-
-    if [[ "${COMPONENT}" == "liqonet" ]]; then
-        if [[ -z "${FIXEDLIQONETIMAGE}" ]]; then
-            docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/liqonet/Dockerfile" "${LIQO_ROOT}" || exit 1
-            #docker buildx build --push --platform linux/amd64,linux/arm64 --tag "ghcr.io/cheina97/${COMPONENT}:${TAG}" --file="${LIQO_ROOT}/build/liqonet/Dockerfile" "${LIQO_ROOT}" || exit 1
-        else
-            IMAGE="${FIXEDLIQONETIMAGE}"
-            SKIPPUSH=true
-        fi
-    elif [[ "${COMPONENT}" == "controller-manager" ]]; then
-        if [[ -z "${FIXEDCTRLMGRIMAGE}" ]]; then
-            docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/common/Dockerfile" --build-arg=COMPONENT="liqo-${COMPONENT}" "${LIQO_ROOT}" || exit 1
-        else
-            IMAGE="${FIXEDCTRLMGRIMAGE}"
-            SKIPPUSH=true
-        fi
+    if [[ "${COMPONENT}" == "controller-manager" ]]; then
+        "$BUILD_CMD" "$LIQO_ROOT/cmd/liqo-controller-manager"
     elif [[ "${COMPONENT}" == "virtual-kubelet" ]]; then
-        if [[ -z "${FIXEDVKIMAGE}" ]]; then
-            docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/common/Dockerfile" --build-arg=COMPONENT="${COMPONENT}" "${LIQO_ROOT}" || exit 1
-        else
-            IMAGE="${FIXEDVKIMAGE}"
-            SKIPPUSH=true
-        fi
+        "$BUILD_CMD" "$LIQO_ROOT/cmd/virtual-kubelet"
     elif [[ "${COMPONENT}" == "metric-agent" ]]; then
-        docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/common/Dockerfile" --build-arg=COMPONENT="${COMPONENT}" "${LIQO_ROOT}" || exit 1
+        "$BUILD_CMD" "$LIQO_ROOT/cmd/metric-agent"
+    elif [[ "${COMPONENT}" == "liqonet" ]]; then
+        "$BUILD_CMD" "$LIQO_ROOT/cmd/liqonet"
     elif [[ "${COMPONENT}" == "gateway" ]]; then
-        docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/gateway/Dockerfile" "${LIQO_ROOT}" || exit 1
+        "$BUILD_CMD" "$LIQO_ROOT/cmd/gateway"
     elif [[ "${COMPONENT}" == "gateway/wireguard" ]]; then
-        docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/gateway/wireguard/Dockerfile" "${LIQO_ROOT}" || exit 1
+        "$BUILD_CMD" "$LIQO_ROOT/cmd/gateway/wireguard"
     elif [[ "${COMPONENT}" == "gateway/geneve" ]]; then
-        docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/gateway/geneve/Dockerfile" "${LIQO_ROOT}" || exit 1
+        "$BUILD_CMD" "$LIQO_ROOT/cmd/gateway/geneve"
     elif [[ "${COMPONENT}" == "fabric" ]]; then
-        docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/fabric/Dockerfile" "${LIQO_ROOT}" || exit 1
+        "$BUILD_CMD" "$LIQO_ROOT/cmd/fabric"
     elif [[ "${COMPONENT}" == "ipam" ]]; then
-        docker build -t "${IMAGE}" --file="${LIQO_ROOT}/build/common/Dockerfile" --build-arg=COMPONENT="${COMPONENT}" "${LIQO_ROOT}" || exit 1
+        "$BUILD_CMD" "$LIQO_ROOT/cmd/ipam"
     else
-        IMAGE="${FIXEDMETRICIMAGE}"
-        SKIPPUSH=true
+        echo "Unknown component: ${COMPONENT}"
+        continue
     fi
 
-    if [[ "${SKIPPUSH}" == "false" ]]; then
-        docker tag "${IMAGE}" "${IMAGE_BASE}:latest"
-        docker push "${IMAGE}"
-        docker push "${IMAGE_BASE}:latest"
-    fi
+    popd || exit
 
-    if [[ "${DEPLOY}" == "false" ]]; then
+    if [ "$BUILD_ONLY" = true ]; then
         continue
     fi
 
     # Update the image in the cluster
-    kind get clusters| grep cheina | while read line; do
+    kind get clusters | grep cheina | while read line; do
         tput setaf 3
         tput bold
         echo "Updating ${COMPONENT} in cluster ${line} with image ${IMAGE}"
         tput sgr0
 
         export KUBECONFIG="${HOME}/liqo-kubeconf-${line}"
-        if [[ "${COMPONENT}" == "liqonet" ]]; then
-            envsubst <"${PATCHDIRPATH}/gateway-patch.yaml" | kubectl -n liqo patch deployment liqo-legacy-gateway --patch-file=/dev/stdin
-            envsubst <"${PATCHDIRPATH}/network-manager-patch.yaml" | kubectl -n liqo patch deployment liqo-network-manager --patch-file=/dev/stdin
-            envsubst <"${PATCHDIRPATH}/route-patch.yaml" | kubectl -n liqo patch daemonsets liqo-route --patch-file=/dev/stdin
-            #kubectl set env -n liqo deployment/liqo-gateway WIREGUARD_IMPLEMENTATION=userspace
-            #kubectl set env -n liqo deployment/liqo-gateway IPTABLES_MODE=nf_tables
-            #kubectl set env -n liqo deployment/liqo-network-manager IPTABLES_MODE=nf_tables
-            #kubectl set env -n liqo daemonset/liqo-route IPTABLES_MODE=nf_tables
-
-        elif [[ "${COMPONENT}" == "virtual-kubelet" ]]; then
+        if [[ "${COMPONENT}" == "virtual-kubelet" ]]; then
             PATCH_YAML="${PATCHDIRPATH}/${COMPONENT}-patch.yaml"
             envsubst <"${PATCH_YAML}" | kubectl -n liqo patch vkoptionstemplate virtual-kubelet-default --type merge --patch-file=/dev/stdin
         elif [[ "${COMPONENT}" == "gateway" ]]; then
-            envsubst <"${PATCHDIRPATH}/gateway-patch.json" | kubectl -n liqo patch wggatewayservertemplate  wireguard-server --patch-file=/dev/stdin --type json
-            envsubst <"${PATCHDIRPATH}/gateway-patch.json" | kubectl -n liqo patch wggatewayclienttemplate  wireguard-client --patch-file=/dev/stdin --type json
+            envsubst <"${PATCHDIRPATH}/gateway-patch.json" | kubectl -n liqo patch wggatewayservertemplate wireguard-server --patch-file=/dev/stdin --type json
+            envsubst <"${PATCHDIRPATH}/gateway-patch.json" | kubectl -n liqo patch wggatewayclienttemplate wireguard-client --patch-file=/dev/stdin --type json
         elif [[ "${COMPONENT}" == "gateway/wireguard" ]]; then
-            envsubst <"${PATCHDIRPATH}/gateway-wireguard-patch.json" | kubectl -n liqo patch wggatewayservertemplate  wireguard-server --patch-file=/dev/stdin --type json
-            envsubst <"${PATCHDIRPATH}/gateway-wireguard-patch.json" | kubectl -n liqo patch wggatewayclienttemplate  wireguard-client --patch-file=/dev/stdin --type json
+            envsubst <"${PATCHDIRPATH}/gateway-wireguard-patch.json" | kubectl -n liqo patch wggatewayservertemplate wireguard-server --patch-file=/dev/stdin --type json
+            envsubst <"${PATCHDIRPATH}/gateway-wireguard-patch.json" | kubectl -n liqo patch wggatewayclienttemplate wireguard-client --patch-file=/dev/stdin --type json
         elif [[ "${COMPONENT}" == "gateway/geneve" ]]; then
-            envsubst <"${PATCHDIRPATH}/gateway-geneve-patch.json" | kubectl -n liqo patch wggatewayservertemplate  wireguard-server --patch-file=/dev/stdin --type json
-            envsubst <"${PATCHDIRPATH}/gateway-geneve-patch.json" | kubectl -n liqo patch wggatewayclienttemplate  wireguard-client --patch-file=/dev/stdin --type json
+            envsubst <"${PATCHDIRPATH}/gateway-geneve-patch.json" | kubectl -n liqo patch wggatewayservertemplate wireguard-server --patch-file=/dev/stdin --type json
+            envsubst <"${PATCHDIRPATH}/gateway-geneve-patch.json" | kubectl -n liqo patch wggatewayclienttemplate wireguard-client --patch-file=/dev/stdin --type json
         elif [[ "${COMPONENT}" == "fabric" ]]; then
             envsubst <"${PATCHDIRPATH}/fabric-patch.yaml" | kubectl -n liqo patch daemonset liqo-fabric --patch-file=/dev/stdin
         else
             PATCH_YAML="${PATCHDIRPATH}/${COMPONENT}-patch.yaml"
             PATCH_JSON="${PATCHDIRPATH}/${COMPONENT}-patch.json"
+
             if [ -f "${PATCH_YAML}" ]; then
                 envsubst <"${PATCH_YAML}" | kubectl -n liqo patch deployment "liqo-${COMPONENT}" --patch-file=/dev/stdin
             fi
@@ -169,10 +153,3 @@ for COMPONENT in "${COMPONENTS[@]}"; do
         fi
     done
 done
-
-echo
-tput setaf 2
-tput bold
-echo "LIQONET BUILT AND DEPLOYED"
-tput sgr0
-echo

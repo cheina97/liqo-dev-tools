@@ -2,5 +2,5 @@
 
 gensymlink:
 	if [ ! -d ./bin ]; then mkdir bin; fi
-	chmod 777 -R *
+	chmod -R 777 *
 	./utils/gensymlink.sh
