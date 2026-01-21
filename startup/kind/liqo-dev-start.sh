@@ -8,6 +8,24 @@ source "$DIRPATH/../../utils/kind.sh"
 # shellcheck source=./utils/generic.sh
 source "$DIRPATH/../../utils/generic.sh"
 
+NOW=$(date +%s)
+export NOW
+
+export OVERRIDE_COMPONENTS=(
+  "controller-manager"
+  "virtual-kubelet"
+  "liqonet"
+  "metric-agent"
+  "gateway"
+  "gateway/wireguard"
+  "gateway/geneve"
+  "ipam"
+  "fabric"
+  "proxy"
+  "crd-replicator"
+  "webhook"
+)
+
 function help() {
   echo "Usage: "
   echo "  liqo-dev-start [-h] [-n] [-b] [-c cni] [-p] [-v version]"
@@ -114,6 +132,11 @@ doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 
 # Init Network Playground
 # doforall liqo-dev-networkplayground "${CLUSTER_NAMES[@]}"
+
+# Build Liqo components
+if [ "${BUILD}" = true ]; then
+  build_liqo
+fi
 
 # Install liqo
 doforall_asyncandwait_withargandindex liqoctl_install_kind "${LIQO_VERSION}" "${CLUSTER_NAMES[@]}"

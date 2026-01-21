@@ -14,15 +14,18 @@ function help() {
 }
 
 COMPONENTS=(
-    "controller-manager"
-    "virtual-kubelet"
-    "liqonet"
-    "metric-agent"
+    #"controller-manager"
+    #"virtual-kubelet"
+    #"liqonet"
+    #"metric-agent"
     "gateway"
-    "gateway/wireguard"
-    "gateway/geneve"
-    "ipam"
+    #"gateway/wireguard"
+    #"gateway/geneve"
+    #"ipam"
     "fabric"
+    #"proxy"
+    #"crd-replicator"
+    #"webhook"
 )
 ALL_COMPONENTS=(
     "controller-manager"
@@ -34,6 +37,9 @@ ALL_COMPONENTS=(
     "gateway/geneve"
     "ipam"
     "fabric"
+    "proxy"
+    "crd-replicator"
+    "webhook"
 )
 
 BUILD_ONLY=false
@@ -84,39 +90,26 @@ export ARCHS="${ARCHS:-linux/arm64}"
 BUILD_CMD="$LIQO_ROOT/build/liqo/build.sh"
 
 for COMPONENT in "${COMPONENTS[@]}"; do
-    pushd "$LIQO_ROOT" || exit
-
-    IMAGE_BASE="${DOCKER_REGISTRY}/${DOCKER_ORGANIZATION}/${COMPONENT}-ci"
-    export IMAGE="${IMAGE_BASE}:${DOCKER_TAG}"
+    pushd "$LIQO_ROOT" >/dev/null || exit
 
     if [[ "${COMPONENT}" == "controller-manager" ]]; then
         "$BUILD_CMD" "$LIQO_ROOT/cmd/liqo-controller-manager"
-    elif [[ "${COMPONENT}" == "virtual-kubelet" ]]; then
-        "$BUILD_CMD" "$LIQO_ROOT/cmd/virtual-kubelet"
-    elif [[ "${COMPONENT}" == "metric-agent" ]]; then
-        "$BUILD_CMD" "$LIQO_ROOT/cmd/metric-agent"
-    elif [[ "${COMPONENT}" == "liqonet" ]]; then
-        "$BUILD_CMD" "$LIQO_ROOT/cmd/liqonet"
-    elif [[ "${COMPONENT}" == "gateway" ]]; then
-        "$BUILD_CMD" "$LIQO_ROOT/cmd/gateway"
-    elif [[ "${COMPONENT}" == "gateway/wireguard" ]]; then
-        "$BUILD_CMD" "$LIQO_ROOT/cmd/gateway/wireguard"
-    elif [[ "${COMPONENT}" == "gateway/geneve" ]]; then
-        "$BUILD_CMD" "$LIQO_ROOT/cmd/gateway/geneve"
-    elif [[ "${COMPONENT}" == "fabric" ]]; then
-        "$BUILD_CMD" "$LIQO_ROOT/cmd/fabric"
-    elif [[ "${COMPONENT}" == "ipam" ]]; then
-        "$BUILD_CMD" "$LIQO_ROOT/cmd/ipam"
     else
-        echo "Unknown component: ${COMPONENT}"
-        continue
+        "$BUILD_CMD" "$LIQO_ROOT/cmd/${COMPONENT}"
     fi
 
-    popd || exit
+    popd >/dev/null || exit
 
     if [ "$BUILD_ONLY" = true ]; then
         continue
     fi
+
+    if [[ "${COMPONENT}" == "controller-manager" ]]; then
+        IMAGE_BASE="${DOCKER_REGISTRY}/${DOCKER_ORGANIZATION}/liqo-${COMPONENT}-ci"
+    else
+        IMAGE_BASE="${DOCKER_REGISTRY}/${DOCKER_ORGANIZATION}/${COMPONENT}-ci"
+    fi
+    export IMAGE="${IMAGE_BASE}:${DOCKER_TAG}"
 
     # Update the image in the cluster
     kind get clusters | grep cheina | while read line; do

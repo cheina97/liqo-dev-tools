@@ -23,6 +23,15 @@ function kind-registry() {
       registry:2
   fi
 
+  reg_name_proxy_quay='kind-registry-proxy-quay'
+  if [ "$(docker inspect -f '{{.State.Running}}' "${reg_name_proxy_quay}" 2>/dev/null || true)" != 'true' ]; then
+    docker run \
+      -d --restart=always --name "${reg_name_proxy_quay}" \
+      -e REGISTRY_PROXY_REMOTEURL="https://quay.io" \
+      --net=kind \
+      registry:2
+  fi
+
   reg_name_proxy_dh='kind-registry-proxy-dh'
   if [ "$(docker inspect -f '{{.State.Running}}' "${reg_name_proxy_dh}" 2>/dev/null || true)" != 'true' ]; then
     docker run \
@@ -199,88 +208,93 @@ function install_cni() {
   echo "Nodes are ready"
 }
 
-function build_and_set_override_flags() {
-  COMPONENTS=(
-    "controller-manager"
-    "virtual-kubelet"
-    "metric-agent"
-    "gateway"
-    "gateway/wireguard"
-    "gateway/geneve"
-    "ipam"
-    "fabric"
-  )
-
-  tag=$(date +%s)
-  override_flags_ref=()
-  for component in "${COMPONENTS[@]}"; do
+function build_liqo() {
+  local tag
+  tag="${NOW}"
+  local build_start_time
+  build_start_time=$(date +%s)
+  for component in "${OVERRIDE_COMPONENTS[@]}"; do
     liqo-dev-deploy -b -t "${tag}" -c "${component}" 1>&2
-    case "${component}" in
-    "controller-manager")
-      override_flags_ref+=("--set-string=controllerManager.image.name=localhost:5001/${component}")
-      override_flags_ref+=("--set-string=controllerManager.image.version=${tag}")
-      ;;
-    "virtual-kubelet")
-      override_flags_ref+=("--set-string=virtualKubelet.image.name=localhost:5001/${component}")
-      override_flags_ref+=("--set-string=virtualKubelet.image.version=${tag}")
-      ;;
-    "metric-agent")
-      override_flags_ref+=("--set-string=metricAgent.image.name=localhost:5001/${component}")
-      override_flags_ref+=("--set-string=metricAgent.image.version=${tag}")
-      ;;
-    "gateway")
-      override_flags_ref+=("--set-string=networking.gatewayTemplates.container.gateway.image.name=localhost:5001/${component}")
-      override_flags_ref+=("--set-string=networking.gatewayTemplates.container.gateway.image.version=${tag}")
-      ;;
-    "gateway/wireguard")
-      override_flags_ref+=("--set-string=networking.gatewayTemplates.container.wireguard.image.name=localhost:5001/${component}")
-      override_flags_ref+=("--set-string=networking.gatewayTemplates.container.wireguard.image.version=${tag}")
-      ;;
-    "gateway/geneve")
-      override_flags_ref+=("--set-string=networking.gatewayTemplates.container.geneve.image.name=localhost:5001/${component}")
-      override_flags_ref+=("--set-string=networking.gatewayTemplates.container.geneve.image.version=${tag}")
-      ;;
-    "ipam")
-      override_flags_ref+=("--set-string=ipam.internal.image.name=localhost:5001/${component}")
-      override_flags_ref+=("--set-string=ipam.internal.image.version=${tag}")
-      ;;
-    "fabric")
-      override_flags_ref+=("--set-string=networking.fabric.image.name=localhost:5001/${component}")
-      override_flags_ref+=("--set-string=networking.fabric.image.version=${tag}")
-      ;;
-    esac
   done
-
-  for flag in "${override_flags_ref[@]}"; do
-    printf '%s\n' "$flag"
-  done
+  local build_end_time
+  build_end_time=$(date +%s)
+  local build_duration=$((build_end_time - build_start_time))
+  echo "Build completed in ${build_duration} seconds"
 }
 
 function liqoctl_install_kind() {
-  cluster_name="$1"
+  local cluster_name="$1"
   export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
-  index="$2"
-  current_version="$3"
+  local index="$2"
+  local current_version="$3"
 
-  monitorEnabled="false"
+  local monitorEnabled="false"
   #if [ "${index}" == "1" ]; then
   #    monitorEnabled="true"
   #fi
 
+  flags_override=()
+
   if [ "${BUILD}" == "true" ]; then
-    echo "Starting building components"
-    start_time=$(date +%s)
-    override_flags=()
-    while IFS= read -r flag; do
-      override_flags+=("$flag")
-    done < <(build_and_set_override_flags)
-    end_time=$(date +%s)
-    duration=$((end_time - start_time))
-    echo "Finished building components in ${duration} seconds"
+    local tag
+    tag="${NOW}"
+    for component in "${OVERRIDE_COMPONENTS[@]}"; do
+      case "${component}" in
+      "controller-manager")
+        flags_override+=("--set-string=controllerManager.image.name=localhost:5001/liqotech/liqo-${component}-ci")
+        flags_override+=("--set-string=controllerManager.image.version=${tag}")
+        ;;
+      "virtual-kubelet")
+        flags_override+=("--set-string=virtualKubelet.image.name=localhost:5001/liqotech/${component}-ci")
+        flags_override+=("--set-string=virtualKubelet.image.version=${tag}")
+        ;;
+      "metric-agent")
+        flags_override+=("--set-string=metricAgent.image.name=localhost:5001/liqotech/${component}-ci")
+        flags_override+=("--set-string=metricAgent.image.version=${tag}")
+        ;;
+      "gateway")
+        flags_override+=("--set-string=networking.gatewayTemplates.container.gateway.image.name=localhost:5001/liqotech/${component}-ci")
+        flags_override+=("--set-string=networking.gatewayTemplates.container.gateway.image.version=${tag}")
+        ;;
+      "gateway/wireguard")
+        flags_override+=("--set-string=networking.gatewayTemplates.container.wireguard.image.name=localhost:5001/liqotech/${component}-ci")
+        flags_override+=("--set-string=networking.gatewayTemplates.container.wireguard.image.version=${tag}")
+        ;;
+      "gateway/geneve")
+        flags_override+=("--set-string=networking.gatewayTemplates.container.geneve.image.name=localhost:5001/liqotech/${component}-ci")
+        flags_override+=("--set-string=networking.gatewayTemplates.container.geneve.image.version=${tag}")
+        ;;
+      "ipam")
+        flags_override+=("--set-string=ipam.internal.image.name=localhost:5001/liqotech/${component}-ci")
+        flags_override+=("--set-string=ipam.internal.image.version=${tag}")
+        ;;
+      "fabric")
+        flags_override+=("--set-string=networking.fabric.image.name=localhost:5001/liqotech/${component}-ci")
+        flags_override+=("--set-string=networking.fabric.image.version=${tag}")
+        ;;
+      "crd-replicator")
+        flags_override+=("--set-string=crdReplicator.image.name=localhost:5001/liqotech/${component}-ci")
+        flags_override+=("--set-string=crdReplicator.image.version=${tag}")
+        ;;
+      "proxy")
+        flags_override+=("--set-string=proxy.image.name=localhost:5001/liqotech/${component}-ci")
+        flags_override+=("--set-string=proxy.image.version=${tag}")
+        ;;
+      "webhook")
+        flags_override+=("--set-string=webhook.image.name=localhost:5001/liqotech/${component}-ci")
+        flags_override+=("--set-string=webhook.image.version=${tag}")
+        ;;
+      esac
+    done
   fi
 
-  echo "${override_flags[@]}"
+  # For debugging, you can inspect the array like this:
+  # declare -p flags
 
+  local install_start_time
+  install_start_time=$(date +%s)
+
+  # ✅ Use the correct expansion syntax: "${flags[@]}"
   liqoctl install kind --cluster-id "${cluster_name}" \
     --timeout "180m" \
     --enable-metrics \
@@ -293,8 +307,13 @@ function liqoctl_install_kind() {
     --set "metrics.prometheusOperator.enabled=${monitorEnabled}" \
     --set ipam.internal.graphviz=false \
     --set "ipam.reservedSubnets={172.17.0.0/16}" \
-    --set "networking.gatewayTemplates.wireguard.implementation=userspace" \
-    "${override_flags[@]}"
+    --set "networking.gatewayTemplates.wireguard.implementation=kernel" \
+    "${flags_override[@]}"
+
+  local install_end_time
+  install_end_time=$(date +%s)
+  local install_duration=$((install_end_time - install_start_time))
+  echo "Liqoctl install completed in ${install_duration} seconds"
 
   #--set networking.gatewayTemplates.wireguard.implementation=userspace \
 
@@ -446,12 +465,18 @@ networking:
 nodes:
   - role: control-plane
     image: kindest/node:v1.33.1
+  - role: worker
+    image: kindest/node:v1.33.1
+  - role: worker
+    image: kindest/node:v1.33.1
 containerdConfigPatches:
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
     endpoint = ["http://${reg_name_proxy_dh}:5000"]
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."ghcr.io"]
     endpoint = ["http://${reg_name_proxy_ghcr}:5000"]
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."quay.io"]
+    endpoint = ["http://${reg_name_proxy_quay}:5000"]
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:${reg_port}"]
     endpoint = ["http://${reg_name}:5000"]
 EOF

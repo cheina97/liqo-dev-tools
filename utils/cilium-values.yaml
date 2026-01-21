@@ -1,3 +1,5 @@
+MTU: 0
+devices: "eth0"
 affinity:
   nodeAffinity:
     requiredDuringSchedulingIgnoredDuringExecution:
