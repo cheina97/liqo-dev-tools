@@ -225,6 +225,7 @@ function build_liqo() {
 function liqoctl_install_kind() {
   local cluster_name="$1"
   export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
+  cluster_name="${cluster_name}-control-plane"
   local index="$2"
   local current_version="$3"
 
@@ -308,6 +309,9 @@ function liqoctl_install_kind() {
     --set ipam.internal.graphviz=false \
     --set "ipam.reservedSubnets={172.17.0.0/16}" \
     --set "networking.gatewayTemplates.wireguard.implementation=kernel" \
+    --set "networking.gatewayTemplates.nftablesMonitor=false" \
+    --set "networking.gatewayTemplates.routeMonitor=false" \
+    --set "virtualKubelet.virtualNode.extra.labels.omni\.cast\.ai/edge-location-name=my-edge-location-name" \
     "${flags_override[@]}"
 
   local install_end_time

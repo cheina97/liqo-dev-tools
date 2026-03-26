@@ -11,6 +11,7 @@ function help() {
     echo "  -c  - component to build (values: all,controller-manager,virtual-kubelet,liqonet,metric-agent,gateway,gateway/wireguard)"
     echo "  -b  - build only, do not deploy"
     echo "  -t  - specify tag to use (default: current timestamp)"
+    echo "  -a  - build all components"
 }
 
 COMPONENTS=(
