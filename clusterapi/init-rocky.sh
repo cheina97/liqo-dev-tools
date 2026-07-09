@@ -8,43 +8,43 @@ DOCKER_PROXY="${DOCKER_PROXY:-docker.io}"
 
 # Define the retry function
 waitandretry() {
-  local waittime="$1"
-  local retries="$2"
-  local command="$3"
-  local options="$-" # Get the current "set" options
+    local waittime="$1"
+    local retries="$2"
+    local command="$3"
+    local options="$-" # Get the current "set" options
 
-  sleep "${waittime}"
+    sleep "${waittime}"
 
-  echo "Running command: ${command} (retries left: ${retries})"
+    echo "Running command: ${command} (retries left: ${retries})"
 
-  # Disable set -e
-  if [[ $options == *e* ]]; then
-    set +e
-  fi
+    # Disable set -e
+    if [[ $options == *e* ]]; then
+        set +e
+    fi
 
-  # Run the command, and save the exit code
-  $command
-  local exit_code=$?
+    # Run the command, and save the exit code
+    $command
+    local exit_code=$?
 
-  # restore initial options
-  if [[ $options == *e* ]]; then
-    set -e
-  fi
+    # restore initial options
+    if [[ $options == *e* ]]; then
+        set -e
+    fi
 
-  # If the exit code is non-zero (i.e. command failed), and we have not
-  # reached the maximum number of retries, run the command again
-  if [[ $exit_code -ne 0 && $retries -gt 0 ]]; then
-    waitandretry "$waittime" $((retries - 1)) "$command"
-  else
-    # Return the exit code from the command
-    return $exit_code
-  fi
+    # If the exit code is non-zero (i.e. command failed), and we have not
+    # reached the maximum number of retries, run the command again
+    if [[ $exit_code -ne 0 && $retries -gt 0 ]]; then
+        waitandretry "$waittime" $((retries - 1)) "$command"
+    else
+        # Return the exit code from the command
+        return $exit_code
+    fi
 }
 
 function install_calico() {
     local kubeconfig=$1
     local POD_CIDR=$2
-    kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml --kubeconfig "$kubeconfig"
+    kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.31.4/manifests/tigera-operator.yaml --kubeconfig "$kubeconfig"
 
     # append a slash to DOCKER_PROXY if not present
     if [[ "${DOCKER_PROXY}" != */ ]]; then
@@ -53,7 +53,7 @@ function install_calico() {
         registry="${DOCKER_PROXY}"
     fi
 
-    cat <<EOF > custom-resources.yaml
+    cat <<EOF >custom-resources.yaml
 # This section includes base Calico installation configuration.
 # For more information, see: https://projectcalico.docs.tigera.io/master/reference/installation/api#operator.tigera.io/v1.Installation
 apiVersion: operator.tigera.io/v1
@@ -68,7 +68,7 @@ spec:
     ipPools:
     - blockSize: 26
       cidr: $POD_CIDR
-      encapsulation: VXLAN
+      encapsulation: VXLANCrossSubnet
       natOutgoing: Enabled
       nodeSelector: all()
     nodeAddressAutodetectionV4:
@@ -83,22 +83,35 @@ kind: APIServer
 metadata:
   name: default
 spec: {}
+
+---
+
+# Configures the Calico Goldmane flow aggregator.
+apiVersion: operator.tigera.io/v1
+kind: Goldmane
+metadata:
+  name: default
+
+---
+# Configures the Calico Whisker observability UI.
+apiVersion: operator.tigera.io/v1
+kind: Whisker
+metadata:
+  name: default
 EOF
     kubectl apply -f custom-resources.yaml --kubeconfig "$kubeconfig"
 }
 
 function wait_calico() {
     local kubeconfig=$1
-    if ! waitandretry 5s 12 "kubectl wait --for condition=Ready=true -n calico-system pod --all --kubeconfig $kubeconfig --timeout=-1s"
-    then
-      echo "Failed to wait for calico pods to be ready"
-      exit 1
+    if ! waitandretry 5s 12 "kubectl wait --for condition=Ready=true -n calico-system pod --all --kubeconfig $kubeconfig --timeout=-1s"; then
+        echo "Failed to wait for calico pods to be ready"
+        exit 1
     fi
     # set felix to use different port for VXLAN
-    if ! waitandretry 5s 12 "kubectl patch felixconfiguration default --type=merge -p {\"spec\":{\"vxlanPort\":6789}} --kubeconfig $kubeconfig";
-    then
-      echo "Failed to patch felixconfiguration"
-      exit 1
+    if ! waitandretry 5s 12 "kubectl patch felixconfiguration default --type=merge -p {\"spec\":{\"vxlanPort\":6789}} --kubeconfig $kubeconfig"; then
+        echo "Failed to patch felixconfiguration"
+        exit 1
     fi
 }
 
@@ -106,7 +119,7 @@ function install_cilium() {
     local kubeconfig=$1
     local POD_CIDR=$2
 
-    cat <<EOF > cilium-values.yaml
+    cat <<EOF >cilium-values.yaml
 ipam:
   operator:
     clusterPoolIPv4PodCIDRList: ${POD_CIDR}
@@ -141,10 +154,9 @@ function install_flannel() {
 
 function wait_flannel() {
     local kubeconfig=$1
-    if ! waitandretry 5s 12 "kubectl wait --for condition=Ready=true -n kube-flannel pod --all --timeout=-1s --kubeconfig $kubeconfig";
-    then
-      echo "Failed to wait for flannel pods to be ready"
-      exit 1
+    if ! waitandretry 5s 12 "kubectl wait --for condition=Ready=true -n kube-flannel pod --all --timeout=-1s --kubeconfig $kubeconfig"; then
+        echo "Failed to wait for flannel pods to be ready"
+        exit 1
     fi
 }
 
@@ -154,31 +166,31 @@ function installcni() {
     podcidr=$3
 
     case "${cni}" in
-        "calico")
-            install_calico "${kubeconfig}" "${podcidr}"
-            wait_calico "${kubeconfig}"
-            ;;
-        "cilium")
-            install_cilium "${kubeconfig}" "${podcidr}"
-            wait_cilium "${kubeconfig}"
-            ;;
-        "flannel")
-            install_flannel "${kubeconfig}" "${podcidr}"
-            wait_flannel "${kubeconfig}"
-            ;;
+    "calico")
+        install_calico "${kubeconfig}" "${podcidr}"
+        wait_calico "${kubeconfig}"
+        ;;
+    "cilium")
+        install_cilium "${kubeconfig}" "${podcidr}"
+        wait_cilium "${kubeconfig}"
+        ;;
+    "flannel")
+        install_flannel "${kubeconfig}" "${podcidr}"
+        wait_flannel "${kubeconfig}"
+        ;;
     esac
 }
 
-function createcluster () {
+function createcluster() {
     index=$1
     cni=$2
     podcidrtype=$3
 
     name="cluster-${index}-${cni}-${podcidrtype}-rocky"
 
-    if kubectl get "clusters.cluster.x-k8s.io/${name}" -n liqo-team &> /dev/null; then
+    if kubectl get "clusters.cluster.x-k8s.io/${name}" -n liqo-team &>/dev/null; then
         echo "Cluster ${name} already exists"
-        clusterctl get kubeconfig -n liqo-team "${name}" > "${HOME}/${name}"
+        clusterctl get kubeconfig -n liqo-team "${name}" >"${HOME}/${name}"
         return
     fi
 
@@ -196,12 +208,12 @@ function createcluster () {
         --worker-machine-count=2 \
         --from "${PWD}/cluster-template-liqotest.yaml" \
         --target-namespace liqo-team | kubectl apply -f -
-    
+
     echo "Waiting for cluster ${name} to be ready"
     kubectl wait --for condition=Ready=true -n liqo-team "clusters.cluster.x-k8s.io/${name}" --timeout=-1s
 
     echo "Getting kubeconfig for cluster ${name}"
-    clusterctl get kubeconfig -n liqo-team "${name}" > "${HOME}/${name}"
+    clusterctl get kubeconfig -n liqo-team "${name}" >"${HOME}/${name}"
 
     echo "Installing CNI ${cni} on cluster ${name}"
     installcni "${HOME}/${name}" "${cni}" "${POD_CIDR}"
@@ -220,7 +232,7 @@ function createcluster () {
     echo "Cluster ${name} ready"
 }
 
-function liqoinstall (){
+function liqoinstall() {
     index=$1
     cni=$2
     podcidrtype=$3
@@ -237,7 +249,7 @@ function liqoinstall (){
     kubeconfig="${HOME}/${name}"
 
     #Check if liqo is installed with helm and if it is, skip the installation
-    if helm status --kubeconfig "${kubeconfig}" -n liqo liqo &> /dev/null; then
+    if helm status --kubeconfig "${kubeconfig}" -n liqo liqo &>/dev/null; then
         echo "Cluster ${name} liqo already installed"
         return
     fi
@@ -278,5 +290,3 @@ for podcidrtype in "${podcidrtypes[@]}"; do
         done
     done
 done
-
-

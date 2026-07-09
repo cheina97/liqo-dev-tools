@@ -6,3 +6,5 @@ prometheus:
     serviceMonitorSelectorNilUsesHelmValues: false
     probeSelectorNilUsesHelmValues: false
     ruleSelectorNilUsesHelmValues: false
+grafana:
+  adminPassword: "admin"

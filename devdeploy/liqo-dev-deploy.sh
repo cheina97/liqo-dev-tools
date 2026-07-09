@@ -15,18 +15,18 @@ function help() {
 }
 
 COMPONENTS=(
-    #"controller-manager"
-    #"virtual-kubelet"
-    #"liqonet"
-    #"metric-agent"
+    "controller-manager"
+    "virtual-kubelet"
+    "liqonet"
+    "metric-agent"
     "gateway"
-    #"gateway/wireguard"
-    #"gateway/geneve"
-    #"ipam"
+    "gateway/wireguard"
+    "gateway/geneve"
+    "ipam"
     "fabric"
-    #"proxy"
-    #"crd-replicator"
-    #"webhook"
+    "proxy"
+    "crd-replicator"
+    "webhook"
 )
 ALL_COMPONENTS=(
     "controller-manager"

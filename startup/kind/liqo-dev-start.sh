@@ -28,14 +28,15 @@ export OVERRIDE_COMPONENTS=(
 
 function help() {
   echo "Usage: "
-  echo "  liqo-dev-start [-h] [-n] [-b] [-c cni] [-p] [-v version]"
+  echo "  liqo-dev-start [-h] [-n] [-b] [-c cni] [-p] [-v version] [-o]"
   echo "Flags:"
   echo "  -h  - help"
   echo "  -n  - number of clusters"
   echo "  -b  - build"
-  echo "  -c  - cni (values: kind,calico,cilium,flannel)"
+  echo "  -c  - cni (values: kind,calico,cilium,flannel,kube-router,kube-router-fou,kube-router-ipip)"
   echo "  -p  - enable autopeering"
   echo "  -v  - liqo version"
+  echo "  -o  - overlapped pod cidrs (all clusters use the same pod cidr)"
 }
 
 # Parse flags
@@ -43,8 +44,9 @@ function help() {
 END="2"
 CNI="kind"
 BUILD="false"
+OVERLAPPED_CIDRS="false"
 
-while getopts 'n:bpc:hv:' flag; do
+while getopts 'n:bpc:hv:o' flag; do
   case "$flag" in
   n)
     END="$OPTARG"
@@ -62,6 +64,11 @@ while getopts 'n:bpc:hv:' flag; do
   v)
     LIQO_VERSION="$OPTARG"
     echo "LIQO Version: ${LIQO_VERSION}"
+    ;;
+  o)
+    OVERLAPPED_CIDRS="true"
+    echo "Overlapped CIDRs: ${OVERLAPPED_CIDRS}"
+    export OVERLAPPED_CIDRS
     ;;
   h)
     help
@@ -128,7 +135,7 @@ doforall_asyncandwait_withargandindex install_cni "${CNI}" "${CLUSTER_NAMES[@]}"
 # doforall_asyncandwait install_kubevirt "${CLUSTER_NAMES[@]}"
 
 # Install Kyverno
-#doforall_asyncandwait kyverno_install_kind "${CLUSTER_NAMES[@]}"
+doforall_asyncandwait kyverno_install_kind "${CLUSTER_NAMES[@]}"
 
 # Init Network Playground
 # doforall liqo-dev-networkplayground "${CLUSTER_NAMES[@]}"

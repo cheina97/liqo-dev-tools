@@ -160,14 +160,12 @@ function install_cni() {
   export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
   index=$2
   CNI=$3
-  POD_CIDR=$(echo "$POD_CIDR_TMPL" | sed "s/X/${index}/g")
-  #POD_CIDR="10.127.64.0/18"
 
   POD_CIDR=""
-  if [[ "${index}" == "1" ]]; then
+  if [[ "${OVERLAPPED_CIDRS}" == "true" ]]; then
     POD_CIDR="10.101.0.0/16"
   else
-    POD_CIDR="10.102.0.0/16"
+    POD_CIDR=$(echo "$POD_CIDR_TMPL" | sed "s/X/${index}/g")
   fi
 
   if [ "${CNI}" == cilium ] || [ "${CNI}" == "cilium-no-kubeproxy" ]; then
@@ -201,6 +199,33 @@ function install_cni() {
     helm repo add flannel https://flannel-io.github.io/flannel/
     helm install flannel --set podCidr="${POD_CIDR}" --namespace kube-flannel flannel/flannel
     kubectl wait --for=condition=ready pod --selector=app=flannel --timeout=90s -n kube-flannel
+  elif [[ "${CNI}" == kube-router* ]]; then
+    # Determine encapsulation type
+    ENCAP=""
+    if [ "${CNI}" == "kube-router-ipip" ]; then
+      ENCAP="ipip"
+    elif [ "${CNI}" == "kube-router-fou" ]; then
+      ENCAP="fou"
+    fi
+
+    kubectl apply -f https://raw.githubusercontent.com/cloudnativelabs/kube-router/master/daemonset/kubeadm-kuberouter.yaml
+
+    # Patch the daemonset to add overlay-type=full and encapsulation args
+    if [ -n "${ENCAP}" ]; then
+      echo "Installing kube-router with overlay-type=full and encapsulation=${ENCAP}"
+    else
+      echo "Installing kube-router with overlay-type=full (no encapsulation)"
+    fi
+
+    kubectl -n kube-system patch daemonset kube-router --type json \
+      -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--overlay-type=full"}]'
+
+    if [ -n "${ENCAP}" ]; then
+      kubectl -n kube-system patch daemonset kube-router --type json \
+        -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--overlay-encap='"${ENCAP}"'"}]'
+    fi
+
+    kubectl -n kube-system rollout status daemonset kube-router --timeout=90s
   fi
 
   echo "Waiting for nodes to be ready"
@@ -225,14 +250,13 @@ function build_liqo() {
 function liqoctl_install_kind() {
   local cluster_name="$1"
   export KUBECONFIG="$HOME/liqo-kubeconf-${cluster_name}"
-  cluster_name="${cluster_name}-control-plane"
   local index="$2"
   local current_version="$3"
 
   local monitorEnabled="false"
-  #if [ "${index}" == "1" ]; then
-  #    monitorEnabled="true"
-  #fi
+  # if [ "${index}" == "1" ]; then
+  #   monitorEnabled="true"
+  # fi
 
   flags_override=()
 
@@ -302,15 +326,16 @@ function liqoctl_install_kind() {
     --cluster-labels="cl.liqo.io/name=${cluster_name}" \
     --local-chart-path "$HOME/Documents/liqo/liqo/deployments/liqo" \
     --version "${current_version}" \
-    --set networking.fabric.config.fullMasquerade=true \
+    --set networking.gatewayTemplates.replicas=1 \
+    --set networking.fabric.config.fullMasquerade=false \
     --set networking.fabric.config.gatewayMasqueradeBypass=true \
     --set metrics.enabled=true \
     --set "metrics.prometheusOperator.enabled=${monitorEnabled}" \
     --set ipam.internal.graphviz=false \
     --set "ipam.reservedSubnets={172.17.0.0/16}" \
     --set "networking.gatewayTemplates.wireguard.implementation=kernel" \
-    --set "networking.gatewayTemplates.nftablesMonitor=false" \
-    --set "networking.gatewayTemplates.routeMonitor=false" \
+    --set "networking.gatewayTemplates.nftablesMonitor=true" \
+    --set "networking.gatewayTemplates.routeMonitor=true" \
     --set "virtualKubelet.virtualNode.extra.labels.omni\.cast\.ai/edge-location-name=my-edge-location-name" \
     "${flags_override[@]}"
 
@@ -408,16 +433,15 @@ function kind-create-cluster() {
 
   index=$2
   CNI=$3
-  POD_CIDR=$(echo "$POD_CIDR_TMPL" | sed "s/X/${index}/g")
-  #POD_CIDR="10.127.64.0/18"
+
   SERVICE_CIDR=$(echo "$SERVICE_CIDR_TMPL" | sed "s/X/${index}/g")
   #SERVICE_CIDR=10.103.0.0/16
 
   POD_CIDR=""
-  if [[ "${index}" == "1" ]]; then
+  if [[ "${OVERLAPPED_CIDRS}" == "true" ]]; then
     POD_CIDR="10.101.0.0/16"
   else
-    POD_CIDR="10.102.0.0/16"
+    POD_CIDR=$(echo "$POD_CIDR_TMPL" | sed "s/X/${index}/g")
   fi
 
   DISABLEDEFAULTCNI="false"
